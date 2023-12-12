@@ -1,0 +1,3 @@
+[submodule "contrib/labelme"]
+	path = contrib/labelme
+	url = git@github.com:wkentaro/labelme.git
