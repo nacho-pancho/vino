@@ -45,18 +45,11 @@ while (cap.isOpened()):
 
     x = np.array(frame)
     if u is None:
-        u = np.zeros(x.shape[:2])
+        u = np.zeros(x.shape)
     
     if n >= n0:
-        u = np.maximum(u,np.mean(x,axis=2))
+        u = np.maximum(u,x)
     n += 1
-    # using cv2.Gaussianblur() method to blur the video
-
-    # (5, 5) is the kernel size for blurring.
-    #gaussianblur = cv2.GaussianBlur(frame, (5, 5), 0) 
-    #cv2.imshow('gblur', gaussianblur)
-    #cv2.imshow(f'frame{n:05d}', frame)
-    #cv2.imshow('frame', frame)
 
     # define q as the exit button
     if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -72,7 +65,9 @@ plt.figure()
 u = np.round(u).astype(np.uint8)
 plt.imshow(u)
 plt.show()
-imgio.imsave('whiteframe.png',u)
+imgio.imsave('max_frame_r.png',u[:,:,0])
+imgio.imsave('max_frame_g.png',u[:,:,0])
+imgio.imsave('max_frame_b.png',u[:,:,0])
 
 # Closes all the windows currently opened.
 cv2.destroyAllWindows()
