@@ -66,8 +66,8 @@ u = np.round(u).astype(np.uint8)
 plt.imshow(u)
 plt.show()
 imgio.imsave('max_frame_r.png',u[:,:,0])
-imgio.imsave('max_frame_g.png',u[:,:,0])
-imgio.imsave('max_frame_b.png',u[:,:,0])
+imgio.imsave('max_frame_g.png',u[:,:,1])
+imgio.imsave('max_frame_b.png',u[:,:,2])
 
 # Closes all the windows currently opened.
 cv2.destroyAllWindows()
