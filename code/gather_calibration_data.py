@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 """
 This program takes frames directly from a video file and produces two main outputs:
-* a white frame to be used for correcting for non-uniform illumination
+* a white frame to be used for correcting for non-uniform illumination; this is a grayscale map computed as 0.5G+0.25R+0.25B
 * a correction factor to the R G and B factors so that a white balance is defined independently from the camera settings
 The user must also provide:
 * the starting frame in the video
@@ -50,7 +50,8 @@ if __name__ == "__main__":
     prefix  = args["output"]
 
     # Loop until the end of the video
-    u = None
+    max_frame = None
+    mean_frame = None
     frame = None
     n = 0
     t0 = time.time()
@@ -63,12 +64,18 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        x = np.array(frame)
-        if u is None:
-            u = np.zeros(x.shape)
+        color_frame = np.array(frame)
+        h,w,c = color_frame.shape
+        
+        gray_frame = 0.25*color_frame[:,:,0] + 0.5*color_frame[:,:,1] + 0.25*color_frame[:,:,2]
+
+        if max_frame is None:
+            max_frame = np.zeros((h,w))
+            mean_frame = np.zeros((h,w,c))
         
         if n >= n0:
-            u = np.maximum(u,x)
+            max_frame = np.maximum(max_frame,gray_frame)
+            mean_frame += color_frame
         n += 1
 
         if not n % 120:
@@ -80,11 +87,12 @@ if __name__ == "__main__":
 
     # release the video capture object
     cap.release()
-    u = np.round(u).astype(np.uint8)
-    u = np.flip(u,axis=2) # BGR -> RGB
-    u = u[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
-    imgio.imsave(f'{prefix}_white_frame.png',u)
-    means = np.mean(np.mean(u,axis=0),axis=0)
+    max_frame = np.round(max_frame).astype(np.uint8)
+    max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
+    imgio.imsave(f'{prefix}_white_frame.png',max_frame)
+
+    mean_frame /= (n-n0)
+    means = np.mean(np.mean(mean_frame,axis=0),axis=0)
     np.savetxt(f'{prefix}_white_balance.txt',means,fmt='%8.4f')
     np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
     print(means)
