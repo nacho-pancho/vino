@@ -44,10 +44,10 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     cap = cv2.VideoCapture(args["input"])
-    n0  = args["start"]
-    n1  = args["finish"]
     cropbox = args["cropbox"]
     prefix  = args["output"]
+    n0  = args["start"]
+    n1  = args["finish"]
     skip    = args["skip"]
 
     # Loop until the end of the video
@@ -63,6 +63,12 @@ if __name__ == "__main__":
         if not ret:
             break
         n += 1
+
+        if (n < n0) or (n % skip):
+            continue
+
+        if n >= n1:
+            break
 
         x = np.array(frame)
         x = np.flip(x,axis=2)

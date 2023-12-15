@@ -12,3 +12,7 @@ Este repositorio contiene código relacionado con el proyecto.
 * `scripts`:  scripts de automatización de diversos procesos, incluyendo ejecución batch de programas
 * `doc`: documentación técnica relacionada con este repositorio (algoritmos, etc.)
 
+## Demos
+
+* Calibración de luz: scripts/toma_3.sh realiza los cálculos de calibración y los aplica a la toma 3 de la salida 3 (2023-12-11-tercera_salida), a la cámara GoPro 2, que es la que quedó mejor situada
+
