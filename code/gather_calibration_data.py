@@ -33,7 +33,7 @@ if __name__ == "__main__":
                     help="First calibration frame.")
     ap.add_argument('-f',"--finish", type=int, required=True,
                     help="Last calibration frame.")
-    ap.add_argument('-c',"--cropbox", type=type_cropbox, required="True",help="cropping box: top,bottom,left,right")
+    ap.add_argument('-c',"--cropbox", type=type_cropbox, default=None,help="cropping box: top,bottom,left,right")
     ap.add_argument('-i',"--input", type=str, required=True,
                     help="input video")
     ap.add_argument('-o',"--output", type=str, required=True,
@@ -88,13 +88,15 @@ if __name__ == "__main__":
     # release the video capture object
     cap.release()
     max_frame = np.round(max_frame).astype(np.uint8)
-    max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
+    if cropbox is not None:
+        max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
+        np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
+        
     imgio.imsave(f'{prefix}_white_frame.png',max_frame)
 
     mean_frame /= (n-n0)
     means = np.mean(np.mean(mean_frame,axis=0),axis=0)
     np.savetxt(f'{prefix}_white_balance.txt',means,fmt='%8.4f')
-    np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
     print(means)
 
 

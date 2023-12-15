@@ -49,34 +49,29 @@ if __name__ == "__main__":
     x0 = np.arange(w0)/w0
     y0 = np.arange(h0)/h0
     X0,Y0 = np.meshgrid(x0,y0)
-    # 
-    # index=1: downsize by a factor of 5
-    #
-    W1 = W0[::decim,::decim]
+
+    if cropbox is not None:
+        mtop,mbottom,mleft,mright = cropbox
+        W1 = W0[mtop:mbottom,mleft:mright]
+        X1 = X0[mtop:mbottom,mleft:mright]
+        Y1 = Y0[mtop:mbottom,mleft:mright]
+    else:
+        W1 = W0
+        X1 = X0
+        Y1 = Y0
 
     h1,w1 = W1.shape
     x1 = np.arange(w1)/w1
     y1 = np.arange(h1)/h1
     X1,Y1 = np.meshgrid(x1,y1)
-
-    fig = plt.figure()
-    plt.imshow(W1)
-
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(projection='3d')
-    ax.plot_surface(X1, Y1, W1, cmap=plt.cm.coolwarm)
-    plt.title('Input')
-    plt.savefig(f'{prefix}_input_curve.png')
-
-    if cropbox is not None:
-        mtop,mbottom,mleft,mright = cropbox
-        W2 = W1[mtop:mbottom,mleft:mright]
-        X2 = X1[mtop:mbottom,mleft:mright]
-        Y2 = Y1[mtop:mbottom,mleft:mright]
-    else:
-        W2 = W1
-        X2 = X1
-        Y2 = Y1
+    # 
+    # index=1: downsize by a factor of 5
+    #
+    W2 = W1[::decim,::decim]
+    h2,w2 = W2.shape
+    x2 = np.arange(w2)/w2
+    y2 = np.arange(h2)/h2
+    X2,Y2 = np.meshgrid(x2,y2)
 
     x2 = X2.ravel()
     y2 = Y2.ravel()
@@ -87,12 +82,9 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(10,10))
     ax = fig.add_subplot(projection='3d')
     ax.plot_surface(X2, Y2, W2, cmap=plt.cm.coolwarm)
-    plt.title('Ground truth (cropped)')
-    #
-    # 2D polynomial in (x,y)
-    # w = a0 + a1*x + a2*y + a3*x*y + a4*x^2 + a5*y^2
-    # 2D polynomial in (x,y)
-    # w = a0 + a1*x + a2*y + a3*x*y + a4*x^2 + a5*y^2
+    plt.title('Input')
+    plt.savefig(f'{prefix}_input_curve.png')
+
     if order == 2:
         v2 = np.array((np.ones(n2),x2,y2,x2*y2,x2**2,y2**2))
     else:
@@ -126,5 +118,5 @@ if __name__ == "__main__":
     w0hat = np.minimum(255,np.maximum(0,np.dot(ahat,v0))).astype(np.uint8)
     W0hat = np.reshape(w0hat,W0.shape)
     imgio.imsave(f'{prefix}_curve.png',W0hat)
-    plt.show()
+    plt.close('all')
 
