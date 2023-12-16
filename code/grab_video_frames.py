@@ -73,7 +73,7 @@ if __name__ == "__main__":
         x = np.array(frame)
         x = np.flip(x,axis=2)
         if not n % skip:
-            imgio.imsave(f'{prefix}_{n:05d}.png',x)
+            imgio.imsave(f'{prefix}_{n:05d}.jpg',x,quality=90)
         
         if n > n1:
             break
