@@ -1,3 +1,6 @@
 [submodule "contrib/labelme"]
 	path = contrib/labelme
 	url = git@github.com:wkentaro/labelme.git
+[submodule "contrib/OpenGoPro"]
+	path = contrib/OpenGoPro
+	url = git@github.com:gopro/OpenGoPro.git
