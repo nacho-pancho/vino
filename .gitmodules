@@ -4,3 +4,12 @@
 [submodule "contrib/OpenGoPro"]
 	path = contrib/OpenGoPro
 	url = git@github.com:gopro/OpenGoPro.git
+[submodule "contrib/cyanure"]
+	path = contrib/cyanure
+	url = git@github.com:inria-thoth/cyanure.git
+[submodule "contrib/python-spams-svn"]
+	path = contrib/python-spams-svn
+	url = https://aur.archlinux.org/python-spams-svn.git
+[submodule "contrib/restauracion-video"]
+	path = contrib/restauracion-video
+	url = git@github.com:nacho-pancho/restauracion-video.git
