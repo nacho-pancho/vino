@@ -42,8 +42,8 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     input   = args["input"]
-    n0      = args["start"]
-    n1      = args["finish"]
+    n0sec   = args["start"]
+    n1sec   = args["finish"]
     skip    = args["skip"]
     wffile  = args["wcurve"]
     wbfile  = args["wbalance"]
@@ -52,10 +52,15 @@ if __name__ == "__main__":
     rot     = args["rotation"]
 
     cap = cv2.VideoCapture(input)
+    fps = cap.get(cv2.CAP_PROP_FPS) 
+    print("frames per second: ",fps)
     frame = None
     n = 0
+    n0 = int(n0sec*fps)
+    n1 = int(n1sec*fps)
     t0 = time.time()
-    wframe = imgio.imread(wffile)
+    wframe = np.array(imgio.imread(wffile),dtype=float)
+    wframe = np.max(wframe)/wframe
     wbal   = np.loadtxt(wbfile)
     print('expo',expo)
     print('wbal',wbal)
@@ -68,19 +73,24 @@ if __name__ == "__main__":
         if frame is None:
             ret, frame = cap.read()
             x = np.array(frame,dtype=float)
+            if rot:
+                x = trans.rotate(x,-rot,resize=True)
             wmax = np.max(wbal)
-            #print('wmax',wmax)
             W = np.zeros(x.shape)
-            W[:,:,0] = 255*expo/wbal[0]
-            W[:,:,1] = 255*expo/wbal[1]
-            W[:,:,2] = 255*expo/wbal[2]
-            #print('Wmax',np.max(W))
+            W[:,:,0] = wframe*(255*expo/wbal[0])
+            W[:,:,1] = wframe*(255*expo/wbal[1])
+            W[:,:,2] = wframe*(255*expo/wbal[2])
+            print('Wmin',np.min(W))
+            print('Wmax',np.max(W))
         else:
             ret, frame = cap.read(frame)
         if not ret:
             print('end of stream at frame',n)
             break
-        
+        if n == 0:
+            h,w,c=x.shape
+            print(f"frame dimensions: height={h} width={w} channels={c}")        
+            print(x.shape)    
         n += 1
         
         if (n < n0) or (n % skip):
@@ -88,7 +98,9 @@ if __name__ == "__main__":
 
         if n >= n1:
             break
-        x = np.flip(np.array(frame),axis=2)
+        x = np.flip(np.array(frame),axis=2) # BGR -> RGB
+        if rot:
+            x = trans.rotate(x,-rot,resize=True)
         x_adj = x * W
         x_under = np.sum(x_adj < 0)
         x_over  = np.sum(x_adj > 255)
@@ -97,19 +109,9 @@ if __name__ == "__main__":
         x_adj = np.minimum(255,np.maximum(0,x_adj))
         fps = (n-n0)/(time.time()-t0)
         print(f'frame {n:05d}  fps {fps:7.1f}')
-        #plt.figure()
-        #plt.subplot(2,1,1)
-        #plt.imshow(x)
-        #plt.subplot(2,1,2)
-        #plt.imshow(x_adj)
-        #plt.show()
-        if rot:
-            x = trans.rotate(x,-rot,resize=True)
-            x_adj = trans.rotate(x_adj,-rot,resize=True)
 
         x     = (255*x).astype(np.uint8)
         x_adj = x_adj.astype(np.uint8)
-
         imgio.imsave(f'{prefix}_frame_{n:05d}_orig.png',x)
         imgio.imsave(f'{prefix}_frame_{n:05d}_adj.png',x_adj)
     cap.release()
