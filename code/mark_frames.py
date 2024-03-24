@@ -21,7 +21,10 @@ from skimage import io as imgio
 from skimage import transform as trans
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 
+LINE_SPACING = 40
+FONT_SIZE = 20
 
 class VidUI():
     '''
@@ -30,11 +33,62 @@ class VidUI():
     def __init__(self,cap1,cap2):
         super().__init__()
         self.root = tk.Tk()
-
         self.style = ttk.Style(self.root)
 
-        self.width = width
-        self.height = height
+        self.dtick = 100
+
+        #
+        # creamos la interfaz gráfica (ventana)
+        #
+        self.root.title("Anotador de frames de vid")
+        if cap1 is None:
+            self.ncams = 0
+            exit(1)
+        
+        if cap2 is not None:
+            self.ncams = 2
+        else:
+            self.ncams = 1
+        self.cap = [None,None]
+        self.cv2_frame = [None,None]
+        self.color_frame = [None,None]
+        self.gray_frame = [None,None]
+        self.tk_image = [None,None]
+        self.fps = [None,None]
+        self.rot = 90*np.ones(2)
+
+        
+        self.cap[0] = cap1
+        self.cap[1] = cap2
+        for C in range(self.ncams):
+            self.fps[C] = self.cap[C].get(cv2.CAP_PROP_FPS)
+        self.frame_idx = 0
+        self.grab_frame()
+
+        height,width,nchannels = self.color_frame[C].shape
+        two_images_width = 2 * width
+        two_images_height = height
+        self.window_width = 1900
+        self.window_height = 900
+        scale_x = 1
+        if self.window_width < two_images_width:
+            scale_x = self.window_width/two_images_width
+        
+        scale_y = 1
+        if self.window_height < two_images_height:
+            scale_y = self.window_height / two_images_height
+        self.scale = min(scale_x,scale_y)
+        
+        if self.window_width > self.scale*two_images_width:
+            self.window_width = int(self.scale*two_images_width) + 20
+        if self.window_height > self.scale*two_images_height:
+            self.window_height = int(self.scale*two_images_height) + 50
+
+        self.root.geometry(f"{self.window_width}x{self.window_height}")
+
+        self.image_width = int(width*self.scale)
+        self.image_height = int(height*self.scale)
+        self.height = self.window_height
         self.drawing = False
         self.x1 = 0
         self.y1 = 0
@@ -46,66 +100,51 @@ class VidUI():
         self.initial_white_frame = -1
         self.final_calib_frame = -1
         self.final_white_frame = -1
-
-        self.dtick = round(1000)
-
-        #
-        # creamos la interfaz gráfica (ventana)
-        #
-        self.root.title("Anotador de frames de vid")
-        if cap1 is None:
-            ncams = 0
-            exit(1)
-        
-        if cap2 is not None:
-            self.ncams = 2
-        else:
-            self.ncams = 1
-        
-        self.cv2_frame = [None,None]
-        self.color_frame = [None,None]
-        self.gray_frame = [None,None]
-        self.rot = np.zeros(2)
-        for C in range(ncams):
-            self.fps[C] = self.cap[C].get(cv2.CAP_PROP_FPS)
-        self.frame_idx = 0
-        self.grab_frame()
-
-        height,width,nchannels = self.color_frame[C].shape
-        window_width = 2*width
-        window_height = height
-        self.root.geometry(f"{window_width}x{window_height}")
-
+        self.time_mark = [-1,-1]
         fmain = ttk.Frame(self.root)
-        fopt = ttk.Frame(fmain,padding=10)
-        self.rot = np.zeros(2)
+        fopt = ttk.Frame(fmain,padding=2)
 
-        self.fwd_button = ttk.Button(fopt,text=">>",padding=3,command=self.next_frame)
-        self.fwd_button.grid(row=0,column=0)
-        self.fwd_button = ttk.Button(fopt,text="<<",padding=3,command=self.prev_frame)
-        self.fwd_button.grid(row=0,column=1)
-        self.ini_wf_check = ttk.Button(fopt, text='initial WF',onvalue=1, offvalue=0, command=self.set_initial_white_frame)
-        self.ini_wf_check.grid(row=0,column=2)
-        self.fin_wf_check = ttk.Button(fopt, text='final WF',onvalue=1, offvalue=0, command=self.set_final_white_frame)
-        self.fin_wf_check.grid(row=0,column=3)
-        self.ini_calib_check = ttk.Button(fopt, text='initial calib',onvalue=1, offvalue=0, command=self.set_initial_calib_frame)
-        self.ini_calib_check.grid(row=0,column=4)
-        self.fin_calib_check = ttk.Button(fopt, text='final calib',onvalue=1, offvalue=0, command=self.set_final_calib_frame)
-        self.fin_calib_check.grid(row=0,column=5)
-        self.ini_calib_check = ttk.Button(fopt, text='left frame time ref',onvalue=1, offvalue=0, command=self.set_time_mark_1)
-        self.ini_calib_check.grid(row=0,column=4)
-        self.fin_calib_check = ttk.Button(fopt, text='right frame time ref',onvalue=1, offvalue=0, command=self.set_time_mark_2)
-        self.fin_calib_check.grid(row=0,column=5)
+        b = ttk.Button(fopt,text="<<",padding=2,command=self.prev_frame_10)
+        b.grid(row=0,column=0)
+        b = ttk.Button(fopt,text="<|",padding=2,command=self.prev_frame)
+        b.grid(row=0,column=1)
+        b = ttk.Button(fopt,text="|>",padding=2,command=self.next_frame)
+        b.grid(row=0,column=2)
+        b = ttk.Button(fopt,text=">>",padding=2,command=self.next_frame_10)
+        b.grid(row=0,column=3)
+
+        b = ttk.Button(fopt, text='time ref 1', padding=2, command=self.set_time_mark_1)
+        b.grid(row=0,column=4)
+        
+        b = ttk.Button(fopt, text='ini WF', padding=2, command=self.set_initial_white_frame)
+        b.grid(row=0,column=5)
+        b = ttk.Button(fopt, text='fin WF', padding=2, command=self.set_final_white_frame)
+        b.grid(row=0,column=6)
+
+        b = ttk.Button(fopt, text='ini calib', padding=2, command=self.set_initial_calib_frame)
+        b.grid(row=0,column=7) 
+        b = ttk.Button(fopt, text='fin calib', padding=2, command=self.set_final_calib_frame)
+        b.grid(row=0,column=8)
+
+        b = ttk.Button(fopt, text='time ref 2', padding=2, command=self.set_time_mark_2)
+        b.grid(row=0,column=9)
+
+        b = ttk.Button(fopt, text='save', padding=2, command=self.save)
+        b.grid(row=0,column=10)
+
+        b = ttk.Button(fopt, text='reset', padding=2, command=self.reset)
+        b.grid(row=0,column=11)
 
         fopt.pack(side="bottom")
         #
         # creamos el lienzo (canvas) en donde dibujar
         #
-        self.canvas = tk.Canvas(fmain, width=self.width, height=self.height, bg='black')
+        self.canvas = tk.Canvas(fmain, width=self.window_width, height=self.window_height, bg='#444')
         
         self.canvas.bind('<ButtonPress-1>', self.mouse_down )
         self.canvas.bind('<ButtonRelease-1>', self.mouse_up )
-        self.canvas.pack()
+        self.canvas.bind('<Motion>',self.mouse_moved)
+        self.canvas.pack(fill=tk.BOTH,expand=1)
         fmain.pack()
         self.canvas.after(self.dtick,self.update)
         self.root.mainloop()
@@ -114,17 +153,20 @@ class VidUI():
         for C in range(self.ncams):
             self.cap[C].set(cv2.CAP_PROP_POS_FRAMES, self.frame_idx)
             ret, self.cv2_frame[C] = cap[C].read()
-            ret, self.cv2_frame[C] = cap[C].read(self.cv2_frame[C])
             self.color_frame[C] = np.flip(np.array(self.cv2_frame[C]),axis=2)
             height,width,nchannels = self.color_frame[C].shape
-            print(f"Camera {C}: input frame dimensions: height={height} width={width} channels={nchannels}")        
             if self.rot[C]:
-                self.color_frame[C] = 255*trans.rotate(self.color_frame,-self.rot[C],resize=True) # rotation scales colors to 0-1!!
+                self.color_frame[C] = 255*trans.rotate(self.color_frame[C],-self.rot[C],resize=True) # rotation scales colors to 0-1!!
             self.gray_frame[C] = \
                 0.25*self.color_frame[C][:,:,0] + \
                 0.5*self.color_frame[C][:,:,1] + \
                 0.25*self.color_frame[C][:,:,2]
 
+    def save(self):
+        pass
+
+    def reset(self):
+        pass
 
     def mouse_down(self,event):
         self.drawing = True
@@ -132,63 +174,115 @@ class VidUI():
         self.y1 = self.root.winfo_pointery()-self.root.winfo_rootx()
         self.y2 = self.y1
         self.x2 = self.x1
+        print("mouse down")
 
 
     def mouse_up(self,event):
         self.drawing = False
         self.cropbox = [min(self.y1,self.y2), min(self.x1,self.x2),max(self.y1,self.y2),max(self.x1,self.x2)]
+        print("mouse up",self.cropbox)
+
+    def mouse_moved(self,event):
+        if self.drawing:
+            self.x2 = max(min(self.root.winfo_pointerx()-self.root.winfo_rootx(),self.image_width),0)
+            self.y2 = max(self.root.winfo_pointery()-self.root.winfo_rootx(),0)
+            self.update()
+
+    def set_initial_white_frame(self):
+        self.initial_white_frame = self.frame_idx
+        print("set initial white frame to ",self.initial_white_frame)
+        self.update()
 
 
-    def set_initial_white_frame(self,value):
-        self.initial_white_frame = value
+    def set_final_white_frame(self):
+        self.final_white_frame = self.frame_idx
+        print("set final white frame to ",self.final_white_frame)
+        self.update()
 
 
-    def set_final_white_frame(self,value):
-        self.final_white_frame = value
+    def set_initial_calib_frame(self):
+        self.initial_calib_frame = self.frame_idx
+        print("set initial calib frame to ",self.initial_calib_frame)
+        self.update()
 
 
-    def set_initial_calib_frame(self,value):
-        self.initial_calib_frame = value
+    def set_final_calib_frame(self):
+        self.final_calib_frame = self.frame_idx
+        print("set final calib frame to ",self.final_calib_frame)
+        self.update()
 
 
-    def set_final_calib_frame(self,value):
-        self.final_calib_frame = value
+    def set_time_mark_1(self):
+        self.time_mark[0] = self.frame_idx
+        self.update()
 
 
-    def set_time_mark_1(self,value):
-        self.time_mark_1 = value
+    def set_time_mark_2(self):
+        self.time_mark[1] = self.frame_idx
+        self.update()
 
 
-    def set_time_mark_2(self,value):
-        self.time_mark_2 = value
 
-
-    def clear_screen(self):
-        self.canvas.create_rectangle(0,0,self.width,self.height,fill='white')
-
-
-    def advance_frame(self):
+    def next_frame(self):
         self.frame_idx += 1
         self.grab_frame()
+        self.update()
 
+    def next_frame_10(self):
+        self.frame_idx += 10
+        self.grab_frame()
+        self.update()
+
+    def prev_frame(self):
+        if self.frame_idx > 0:
+            self.frame_idx -= 1
+            self.grab_frame()
+            self.update()
+    
+    def prev_frame_10(self):
+        if self.frame_idx > 9:
+            self.frame_idx -= 10
+            self.grab_frame()
+            self.update()
+ 
 
     def update(self):
-        self.x2 = self.root.winfo_pointerx()-self.root.winfo_rootx()
-        self.y2 = self.root.winfo_pointery()-self.root.winfo_rooty()
-        if self.drawing:
-            self.paint()
-        self.canvas.after(self.dtick,self.update)
-
+        self.paint()
+        #self.canvas.after(self.dtick,self.update)
 
     def paint(self):
-        #
-        # coordenadas del mouse originales
-        #
-        w = self.width
-        h = self.height
+        huge_font = ("Arial",24)
+        large_font = ("Arial",20)
+        normal_font = ("Arial",18)
         for C in range(self.ncams):
-            self.canvas.create_image(0,0,anchor=cv2.NW,image=self.color_frame[0])
-            self.canvas.create_image(0,0,anchor=cv2.NE,image=self.color_frame[0])
+            yoff = 20
+            self.npimg = trans.rescale(self.color_frame[C],self.scale,channel_axis=2).astype(np.uint8)            
+            W = self.image_width
+            pilimage = Image.fromarray(self.npimg)
+            self.tk_image[C] = ImageTk.PhotoImage(pilimage)
+            self.canvas.create_image(C*W,0,anchor=tk.NW,image=self.tk_image[C])
+            self.canvas.create_text(20+C*W,yoff,font=huge_font, text=f"Frame {self.frame_idx}",anchor=tk.NW, fill="#fff")
+            yoff += LINE_SPACING
+            self.canvas.create_text(20+C*W,yoff,anchor=tk.NW,fill="#ff8",text=f"Cam {C}",font=large_font)
+            if self.x1 != self.x2 or self.y1 != self.y2:
+                j0 = min(self.x1,self.x2)
+                j1 = max(self.x1,self.x2)
+                i0 = min(self.y1,self.y2)
+                i1 = max(self.y1,self.y2)
+                self.canvas.create_rectangle(C*W+j0,i0,C*W+j1,i1,fill=None,outline="#0f0",width=2)
+            yoff += LINE_SPACING
+            if self.initial_calib_frame == self.frame_idx:
+                self.canvas.create_text(20+C*W,yoff,text="CI",font=normal_font, anchor=tk.NW,fill="#8f0")
+            if self.final_calib_frame == self.frame_idx:
+                self.canvas.create_text(20+C*W,yoff,text="CF",font=normal_font, anchor=tk.NW,fill="#f80")
+            yoff += LINE_SPACING
+            if self.initial_white_frame == self.frame_idx:
+                self.canvas.create_text(20+C*W,yoff,text="WI",font=normal_font, anchor=tk.NW,fill="#8f0")
+            if self.final_white_frame == self.frame_idx:
+                self.canvas.create_text(20+C*W,yoff,text="WF",font=normal_font, anchor=tk.NW,fill="#f80")
+            yoff += LINE_SPACING
+            if self.time_mark[C] == self.frame_idx:
+                self.canvas.create_text(20+C*W,yoff,font=huge_font, anchor=tk.NW, text="T",fill="#8ff")
 
 
 if __name__ == "__main__":
@@ -197,18 +291,17 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument("--input1", type=str, required=True,
+    ap.add_argument("--input-one", type=str, required=True,
                     help="input video")
-    ap.add_argument("--input2", type=str, default=None,
+    ap.add_argument("--input-two", type=str, default=None,
                     help="input video")
-    ap.add_argument('-m',"--method", type=str, default="max",
-                    help="Method for computing the white frame. May be average,max,or an integer for the percentile (much slower).")
-  
+    
     args = vars(ap.parse_args())
     cap = [None,None]
     fps = [None,None]
-    cap[0] = cv2.VideoCapture(args["input1"])
-
+    cap[0] = cv2.VideoCapture(args["input_one"])
+    if args["input_two"] is not None:
+        cap[1] = cv2.VideoCapture(args["input_two"])
     gui  = VidUI(cap[0],cap[1])
     if cap[0]:
         cap[0].release()
