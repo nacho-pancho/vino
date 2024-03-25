@@ -22,6 +22,7 @@ from skimage import transform as trans
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
+import json
 
 LINE_SPACING = 40
 FONT_SIZE = 20
@@ -30,11 +31,12 @@ class VidUI():
     '''
     Clase principal
     '''
-    def __init__(self,cap1,cap2):
+    def __init__(self,cap1,cap2,outfname,infname):
         super().__init__()
         self.root = tk.Tk()
         self.style = ttk.Style(self.root)
-
+        self.outfname = outfname
+        self.infname = infname
         self.dtick = 100
 
         #
@@ -49,6 +51,7 @@ class VidUI():
             self.ncams = 2
         else:
             self.ncams = 1
+        
         self.cap = [None,None]
         self.cv2_frame = [None,None]
         self.color_frame = [None,None]
@@ -57,7 +60,6 @@ class VidUI():
         self.fps = [None,None]
         self.rot = 90*np.ones(2)
 
-        
         self.cap[0] = cap1
         self.cap[1] = cap2
         for C in range(self.ncams):
@@ -78,9 +80,9 @@ class VidUI():
         if self.window_height < two_images_height:
             scale_y = self.window_height / two_images_height
         self.scale = min(scale_x,scale_y)
-        
+        self.margin = 200
         if self.window_width > self.scale*two_images_width:
-            self.window_width = int(self.scale*two_images_width) + 20
+            self.window_width = int(self.scale*two_images_width) + 200
         if self.window_height > self.scale*two_images_height:
             self.window_height = int(self.scale*two_images_height) + 50
 
@@ -96,11 +98,8 @@ class VidUI():
         self.y2 = 0
         self.rot1 = 0
         self.rot2 = 0
-        self.initial_calib_frame = -1
-        self.initial_white_frame = -1
-        self.final_calib_frame = -1
-        self.final_white_frame = -1
-        self.time_mark = [-1,-1]
+        self.reset()
+        
         fmain = ttk.Frame(self.root)
         fopt = ttk.Frame(fmain,padding=2)
 
@@ -139,8 +138,7 @@ class VidUI():
         #
         # creamos el lienzo (canvas) en donde dibujar
         #
-        self.canvas = tk.Canvas(fmain, width=self.window_width, height=self.window_height, bg='#444')
-        
+        self.canvas = tk.Canvas(fmain, width=self.window_width, height=self.window_height, bg='#222')
         self.canvas.bind('<ButtonPress-1>', self.mouse_down )
         self.canvas.bind('<ButtonRelease-1>', self.mouse_up )
         self.canvas.bind('<Motion>',self.mouse_moved)
@@ -148,6 +146,7 @@ class VidUI():
         fmain.pack()
         self.canvas.after(self.dtick,self.update)
         self.root.mainloop()
+
 
     def grab_frame(self):
         for C in range(self.ncams):
@@ -162,11 +161,33 @@ class VidUI():
                 0.5*self.color_frame[C][:,:,1] + \
                 0.25*self.color_frame[C][:,:,2]
 
+
     def save(self):
-        pass
+        print("save to ", self.outfname)
+        x = {
+            "ini_wf" : self.initial_white_frame,
+            "fin_wf" : self.final_white_frame,
+            "ini_cf" : self.initial_calib_frame,
+            "fin_cf" : self.final_calib_frame,
+            "time_mark"  : self.time_mark
+        }
+        txt = json.dumps(x,indent=4)
+        with open(self.outfname,"w") as f:
+            f.write(txt)
+            print(txt)
+
+
+    def load(self):
+        json.loads()
+
 
     def reset(self):
-        pass
+        self.initial_calib_frame = -1
+        self.initial_white_frame = -1
+        self.final_calib_frame = -1
+        self.final_white_frame = -1
+        self.time_mark = [-1,-1]
+
 
     def mouse_down(self,event):
         self.drawing = True
@@ -182,11 +203,13 @@ class VidUI():
         self.cropbox = [min(self.y1,self.y2), min(self.x1,self.x2),max(self.y1,self.y2),max(self.x1,self.x2)]
         print("mouse up",self.cropbox)
 
+
     def mouse_moved(self,event):
         if self.drawing:
-            self.x2 = max(min(self.root.winfo_pointerx()-self.root.winfo_rootx(),self.image_width),0)
+            self.x2 = max(min(self.root.winfo_pointerx()-self.root.winfo_rootx(),self.image_width+self.margin//3),0)
             self.y2 = max(self.root.winfo_pointery()-self.root.winfo_rootx(),0)
             self.update()
+
 
     def set_initial_white_frame(self):
         self.initial_white_frame = self.frame_idx
@@ -222,23 +245,25 @@ class VidUI():
         self.update()
 
 
-
     def next_frame(self):
         self.frame_idx += 1
         self.grab_frame()
         self.update()
+
 
     def next_frame_10(self):
         self.frame_idx += 10
         self.grab_frame()
         self.update()
 
+
     def prev_frame(self):
         if self.frame_idx > 0:
             self.frame_idx -= 1
             self.grab_frame()
             self.update()
-    
+
+
     def prev_frame_10(self):
         if self.frame_idx > 9:
             self.frame_idx -= 10
@@ -250,17 +275,20 @@ class VidUI():
         self.paint()
         #self.canvas.after(self.dtick,self.update)
 
+
     def paint(self):
         huge_font = ("Arial",24)
         large_font = ("Arial",20)
         normal_font = ("Arial",18)
+        #self.canvas.create_rectangle(0,0,self.canvas.winfo_width,self.canvas.winfo_height)
+        self.canvas.delete("all")
         for C in range(self.ncams):
             yoff = 20
             self.npimg = trans.rescale(self.color_frame[C],self.scale,channel_axis=2).astype(np.uint8)            
-            W = self.image_width
+            W = self.image_width+self.margin//3
             pilimage = Image.fromarray(self.npimg)
             self.tk_image[C] = ImageTk.PhotoImage(pilimage)
-            self.canvas.create_image(C*W,0,anchor=tk.NW,image=self.tk_image[C])
+            self.canvas.create_image(self.margin//3 + C*W,0,anchor=tk.NW,image=self.tk_image[C])
             self.canvas.create_text(20+C*W,yoff,font=huge_font, text=f"Frame {self.frame_idx}",anchor=tk.NW, fill="#fff")
             yoff += LINE_SPACING
             self.canvas.create_text(20+C*W,yoff,anchor=tk.NW,fill="#ff8",text=f"Cam {C}",font=large_font)
@@ -295,6 +323,10 @@ if __name__ == "__main__":
                     help="input video")
     ap.add_argument("--input-two", type=str, default=None,
                     help="input video")
+    ap.add_argument("--outfile", type=str, default="calibration_info.json",
+                    help="JSON output file.")
+    ap.add_argument("--infile",  type=str, default="calibration_info.json",
+                    help="JSON input file.")
     
     args = vars(ap.parse_args())
     cap = [None,None]
@@ -302,7 +334,7 @@ if __name__ == "__main__":
     cap[0] = cv2.VideoCapture(args["input_one"])
     if args["input_two"] is not None:
         cap[1] = cv2.VideoCapture(args["input_two"])
-    gui  = VidUI(cap[0],cap[1])
+    gui  = VidUI(cap[0],cap[1],args["outfile"],args["infile"])
     if cap[0]:
         cap[0].release()
     if cap[1]:
