@@ -375,6 +375,7 @@ if __name__ == "__main__":
         else:
             json_path,_ = os.path.split(args["input_one"])
         args["json_file"] = os.path.join(json_path,"annotations.json")
+        print("json file:",args["json_file"])
 
     gui  = VidUI(cap[0],cap[1],args["rotation1"],args["rotation2"],args["json_file"])
     
