@@ -128,7 +128,7 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument('-D',"--basedir", type=str, defalt=".",
+    ap.add_argument('-D',"--basedir", type=str, default=".",
                     help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=int, required=True,
                     help="Calibration JSON file produced by annotate. ")
