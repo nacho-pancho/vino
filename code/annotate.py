@@ -31,8 +31,11 @@ class VidUI():
     '''
     Clase principal
     '''
-    def __init__(self,cap1,cap2,rot1,rot2,json_fname):
+    def __init__(self,cap1,cap2,args):
         super().__init__()
+        rot1 = args["rotation1"]
+        rot2 = args["rotation2"]
+        json_fname = args["json_file"]        
         self.root = tk.Tk()
         self.style = ttk.Style(self.root)
         self.json_fname = json_fname
@@ -104,6 +107,8 @@ class VidUI():
         # annotated parameters
         #
         self.annotations = {
+            "input_1":args["input_one"],
+            "input_2":args["input_two"],
             "ini_calib_frame":-1,
             "fin_calib_frame":-1,
             "ini_white_frame":-1,
@@ -210,10 +215,9 @@ class VidUI():
 
     def reset(self):
         for k in self.annotations.keys():
-            self.annotations[k] = -1
+            if k[:5] == "frame":
+                self.annotations[k] = -1
         self.scaled_cropbox =[0,self.scaled_frame_height,0,self.scaled_frame_width]
-        self.annotations["rot1"] = self.rot[0]
-        self.annotations["rot2"] = self.rot[1]
         for k,v in self.side_bar.children:
             if k[:2] == "go":
                 v["state"] = "disabled"
@@ -348,6 +352,7 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
+    ap.add_argument("--basedir",type=str,default=".",help="all files will be relative to this directory.")
     ap.add_argument("--input-one", type=str, required=True,
                     help="input video")
     ap.add_argument("--input-two", type=str, default=None,
@@ -355,16 +360,18 @@ if __name__ == "__main__":
     ap.add_argument("--json-file", type=str, default=None,
                     help="JSON input/output file.")
     ap.add_argument("--rotation1", type=int, default=0,
-                    help="JSON input/output file.")
+                    help="rotation of first input.")
     ap.add_argument("--rotation2", type=int, default=0,
-                    help="JSON input/output file.")
+                    help="rotation of second input.")
     
     args = vars(ap.parse_args())
     cap = [None,None]
     fps = [None,None]
-    cap[0] = cv2.VideoCapture(args["input_one"])
+    input_one_path = os.path.join(args["basedir"],args["input_one"])
+    cap[0] = cv2.VideoCapture(args[input_one_path])
     if args["input_two"] is not None:
-        cap[1] = cv2.VideoCapture(args["input_two"])
+        input_two_path = os.path.join(args["basedir"],args["input_two"])
+        cap[1] = cv2.VideoCapture(input_two_path)
 
     if args["json_file"] is None:
         #
@@ -374,10 +381,10 @@ if __name__ == "__main__":
             json_path = os.path.commonpath((args["input_two"],args["input_one"]))
         else:
             json_path,_ = os.path.split(args["input_one"])
-        args["json_file"] = os.path.join(json_path,"annotations.json")
+        args["json_file"] = os.path.join(args["basedir"],os.path.join(json_path,"annotations.json"))
         print("json file:",args["json_file"])
 
-    gui  = VidUI(cap[0],cap[1],args["rotation1"],args["rotation2"],args["json_file"])
+    gui  = VidUI(cap[0],cap[1],args)
     
     if cap[0]:
         cap[0].release()
