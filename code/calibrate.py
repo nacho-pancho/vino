@@ -23,8 +23,8 @@ import json
 import os
 
 def compute_offsets(annotations):
-    sync_1 = annotations["sync_1"]
-    sync_2 = annotations["sync_2"]
+    sync_1 = annotations["sync_1_frame"]
+    sync_2 = annotations["sync_2_frame"]
 
     if sync_1 < 0:
         sync_1 = 0
@@ -49,22 +49,39 @@ def compute_offsets(annotations):
 
 
 
-def do_white(cap,annotations,args):
-    
+def do_white(annotations,args):
+
+    input_fname = [None,None]
+    input_fname[0] = os.path.join(basedir,annotations["input_one"])
+    if annotations["input_two"]:
+        input_fname[1] = os.path.join(basedir,annotations["input_two"])
+        ncam = 2
+    else:
+        ncam = 1
+    rot = [ annotations["rot1"], annotations["rot2"]]
+
     offset = compute_offsets(annotations)
     cropbox = annotations["crop_box"]
     prefix  = os.path.join(args["basedir"],args["output"])
     # white frame
     ini_white = annotations["ini_white_frame"]
-    end_white = annotations["end_white_frame"]    
+    end_white = annotations["fin_white_frame"]    
     n_white = end_white - ini_white
+    fps = [None,None]
+    cap = [None,None]
     for c in range(ncam):
+        print(f"camera {c}:")
+        cap[c] = cv2.VideoCapture(input_fname[c])
         cap[c].set(cv2.CAP_PROP_POS_FRAMES, offset[c]+ini_white)
+        fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
+        print("\tframes per second: ",fps[c])
+        print("\trotation:",rot[c])
 
         # Loop until the end of the video
         max_frame = None
         mean_frame = None
         frame = None
+        n = 0
         t0 = time.time()
         while (cap[c].isOpened()) and n < n_white:
             # Capture frame-by-frame
@@ -76,13 +93,13 @@ def do_white(cap,annotations,args):
                 break
             
             color_frame = np.flip(np.array(frame),axis=2)
-            h,w,c = color_frame.shape
+            h,w,_ = color_frame.shape
             if rot[c]:
                 color_frame = 255*trans.rotate(color_frame,-rot,resize=True) # rotation scales colors to 0-1!!
 
             gray_frame = 0.25*color_frame[:,:,0] + 0.5*color_frame[:,:,1] + 0.25*color_frame[:,:,2]
             if n == 0:
-                h,w,c = color_frame.shape
+                h,w,_ = color_frame.shape
                 mean_frame = np.zeros(color_frame.shape)
                 max_frame = np.zeros(gray_frame.shape)
             
@@ -92,7 +109,7 @@ def do_white(cap,annotations,args):
 
             if not n % 10:
                 fps = n/(time.time()-t0)
-                imgio.imsave(f'{prefix}_input_white_{n:05d}.jpg',np.round(color_frame).astype(np.uint8))
+                imgio.imsave(os.path.join(prefix,f'input_white_{n:05d}.jpg',np.round(color_frame).astype(np.uint8)))
                 print(f'frame {n:05d}  fps {fps:7.1f}')
 
             n += 1
@@ -120,17 +137,13 @@ def do_calib(cap,annotations,args):
 
 if __name__ == "__main__":
 
-    def type_cropbox(s):
-        cs = [int(x.strip()) for x in s.split(',')]
-        return cs
-        
     ap = argparse.ArgumentParser()
     #
     # mmetadata
     #
     ap.add_argument('-D',"--basedir", type=str, default=".",
                     help="Base directory. Everything else is relative to this one. ")
-    ap.add_argument('-a',"--annotation", type=int, required=True,
+    ap.add_argument('-a',"--annotation", type=str, required=True,
                     help="Calibration JSON file produced by annotate. ")
     ap.add_argument('-o',"--output", type=str, required=True,
                     help="Output prefix for data produced by this function. This is appended to basedir.")
@@ -143,41 +156,23 @@ if __name__ == "__main__":
 
     with open(json_fname,"r") as f:
         annotations = json.loads(f.read())
-        rot = [ annotations["rot1"], annotations["rot2"]]
-        input_fname = [None,None]
-        cap = [None,None]
-        fps = [None,None]
-        input_fname[0] = os.path.join(basedir,annotations["input_one"])
-        if annotations["input_two"]:
-            input_fname[1] = os.path.join(basedir,annotations["input_two"])
-            ncam = 2
-        else:
-            ncam = 1
+        print(json.dumps(annotations,indent="    "))
     
-    for c in range(ncam):
-        print(f"camera {c}:")
-        cap[c] = cv2.VideoCapture(input_fname[c])
-        fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
-        print("\tframes per second: ",fps[c])
-        print("\trotation:",rot[c])
+        prefix  = args["output"]
+        # white frame
+        ini_white = annotations["ini_white_frame"]
+        end_white = annotations["fin_white_frame"]    
+        if ini_white * end_white >= 0:
+            print(f"Computing white frame using frames from {ini_white} to {end_white}")
+            do_white(annotations,args)
+        else:
+            print("No white frame will be computed.")
 
-
-    crop_box = annotations["crop_box"]
-    prefix  = args["output"]
-    # white frame
-    ini_white = annotations["ini_white_frame"]
-    end_white = annotations["end_white_frame"]    
-    if ini_white * end_white >= 0:
-        print(f"Computing white frame using frames from {ini_white} to {end_white}")
-        do_white(cap,annotations,args)
-    else:
-        print("No white frame will be computed.")
-
-    ini_calib = annotations["ini_calib_frame"]
-    end_calib = annotations["end_calib_frame"]
-    if ini_calib * end_calib >= 0:
-        print(f"Computing 3D calibration  using frames from {ini_calib} to {end_calib}")
-        do_calib(cap,annotations,args)
-    else:
-        print("No white frame will be computed.")
+        ini_calib = annotations["ini_calib_frame"]
+        end_calib = annotations["fin_calib_frame"]
+        if ini_calib * end_calib >= 0:
+            print(f"Computing 3D calibration  using frames from {ini_calib} to {end_calib}")
+            do_calib(cap,annotations,args)
+        else:
+            print("No white frame will be computed.")
 
