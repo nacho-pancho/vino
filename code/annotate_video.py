@@ -23,7 +23,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import json
-
+import os
 LINE_SPACING = 30
 FONT_SIZE = 20
 
@@ -31,26 +31,12 @@ class VidUI():
     '''
     Clase principal
     '''
-    def __init__(self,cap1,cap2,outfname,infname):
+    def __init__(self,cap1,cap2,rot1,rot2,json_fname):
         super().__init__()
         self.root = tk.Tk()
         self.style = ttk.Style(self.root)
-        self.outfname = outfname
-        self.infname = infname
+        self.json_fname = json_fname
         self.dtick = 100
-        #
-        # annotated parameters
-        #
-        self.annotations = {
-            "ini_calib_frame":-1,
-            "fin_calib_frame":-1,
-            "ini_white_frame":-1,
-            "fin_white_frame":-1,
-            "ini_data_frame":-1,
-            "fin_data_frame":-1,
-            "sync_1_frame":-1,
-            "sync_2_frame":-1
-            }
 
         #
         # creamos la interfaz gráfica (ventana)
@@ -65,24 +51,24 @@ class VidUI():
         else:
             self.ncams = 1
         
-        self.cap = [None,None]
+
+        self.cap = [cap1,cap2]
+        self.rot = [rot1,rot2]
+
         self.cv2_frame = [None,None]
         self.color_frame = [None,None]
         self.gray_frame = [None,None]
         self.tk_image = [None,None]
         self.fps = [None,None]
-        self.rot = 90*np.ones(2)
 
-        self.cap[0] = cap1
-        self.cap[1] = cap2
         for C in range(self.ncams):
             self.fps[C] = self.cap[C].get(cv2.CAP_PROP_FPS)
         self.frame_idx = 0
         self.grab_frame()
 
-        height,width,nchannels = self.color_frame[C].shape
-        two_images_width = 2 * width
-        two_images_height = height
+        self.frame_height,self.frame_width,nchannels = self.color_frame[C].shape
+        two_images_width = 2 * self.frame_width
+        two_images_height = self.frame_height
         self.window_width = 1900
         self.window_height = 900
         scale_x = 1
@@ -101,18 +87,38 @@ class VidUI():
 
         self.root.geometry(f"{self.window_width}x{self.window_height}")
 
-        self.image_width = int(width*self.scale)
-        self.image_height = int(height*self.scale)
+        self.scaled_frame_width = int(self.frame_width*self.scale)
+        self.scaled_frame_height = int(self.frame_height*self.scale)
         self.height = self.window_height
+        print("input frame shape h=",self.frame_height, "w=",self.frame_width)
+        print("scaled frame shape h=",self.scaled_frame_height, "w=",self.scaled_frame_width)
+        print("scale=",self.scale)
         self.drawing = False
         self.x1 = 0
         self.y1 = 0
         self.x2 = 0
         self.y2 = 0
-        self.rot1 = 0
-        self.rot2 = 0        
-        fmain = ttk.Frame(self.root)
 
+
+        #
+        # annotated parameters
+        #
+        self.annotations = {
+            "ini_calib_frame":-1,
+            "fin_calib_frame":-1,
+            "ini_white_frame":-1,
+            "fin_white_frame":-1,
+            "ini_data_frame":-1,
+            "fin_data_frame":-1,
+            "sync_1_frame":-1,
+            "sync_2_frame":-1,
+            "crop_box": [0,self.frame_height,0,self.frame_width],
+            "rot1": self.rot[0],
+            "rot2": self.rot[1]
+            }
+        self.scaled_cropbox = [self.scale*x for x in self.annotations["crop_box"]]
+        fmain = ttk.Frame(self.root)
+        print("scaled cropbox",self.scaled_cropbox)
         nav_bar = ttk.Frame(fmain,padding=2)
         ri = 0
         ci = 0
@@ -143,6 +149,8 @@ class VidUI():
         ci = 0
 
         for k in self.annotations.keys():
+            if k[-5:] != 'frame':
+                continue
             name = k
             text = k[:-6].replace("_"," ") # remove the "frame"
             goto_name = "goto_" + name
@@ -184,20 +192,28 @@ class VidUI():
 
 
     def save(self):
-        print("save to ", self.outfname)
+        print("save to ", self.json_fname)
+        self.annotations["crop_box"] = [int(x/self.scale) for x in self.scaled_cropbox]
         txt = json.dumps(self.annotations,indent=4)
-        with open(self.outfname,"w") as f:
+        with open(self.json_fname,"w") as f:
             f.write(txt)
             print(txt)
 
 
     def load(self):
-        self.annotations = json.loads()
+        with open(self.json_fname,"r") as f:
+            self.annotations = json.loads(f.read())
+        self.scaled_cropbox = [int(self.scale*x) for x in self.annotations["crop_box"]]
+        self.rot[0] = self.annotations["rot1"]
+        self.rot[1] = self.annotations["rot2"]
 
 
     def reset(self):
         for k in self.annotations.keys():
             self.annotations[k] = -1
+        self.scaled_cropbox =[0,self.scaled_frame_height,0,self.scaled_frame_width]
+        self.annotations["rot1"] = self.rot[0]
+        self.annotations["rot2"] = self.rot[1]
         for k,v in self.side_bar.children:
             if k[:2] == "go":
                 v["state"] = "disabled"
@@ -205,8 +221,8 @@ class VidUI():
 
     def mouse_down(self,event):
         self.drawing = True
-        self.x1 = self.root.winfo_pointerx()-self.root.winfo_rootx()
-        self.y1 = self.root.winfo_pointery()-self.root.winfo_rootx()
+        self.x1 = self.canvas.winfo_pointerx()-self.canvas.winfo_rootx()
+        self.y1 = self.canvas.winfo_pointery()-self.canvas.winfo_rooty()
         self.y2 = self.y1
         self.x2 = self.x1
         print("mouse down")
@@ -214,14 +230,16 @@ class VidUI():
 
     def mouse_up(self,event):
         self.drawing = False
-        self.cropbox = [min(self.y1,self.y2), min(self.x1,self.x2),max(self.y1,self.y2),max(self.x1,self.x2)]
-        print("mouse up",self.cropbox)
-
+        self.scaled_cropbox = [max(0,min(self.y1,self.y2)), 
+                               max(0,min(self.x1,self.x2)),
+                               min(self.scaled_frame_height,max(self.y1,self.y2)),
+                               min(self.scaled_frame_width,max(self.x1,self.x2))]
+        print("mouse up. scaled_cropbox",self.scaled_cropbox)
 
     def mouse_moved(self,event):
         if self.drawing:
-            self.x2 = max(min(self.root.winfo_pointerx()-self.root.winfo_rootx(),self.image_width+self.margin//3),0)
-            self.y2 = max(self.root.winfo_pointery()-self.root.winfo_rootx(),0)
+            self.x2 = max(min(self.canvas.winfo_pointerx()-self.canvas.winfo_rootx(),self.scaled_frame_width+self.margin//3),0)
+            self.y2 = max(self.canvas.winfo_pointery()-self.canvas.winfo_rooty(),0)
             self.update()
 
 
@@ -289,11 +307,11 @@ class VidUI():
         for C in range(self.ncams):
             yoff = 20
             self.npimg = trans.rescale(self.color_frame[C],self.scale,channel_axis=2,order=0,anti_aliasing=False).astype(np.uint8)            
-            W = self.image_width+self.margin//3
+            W = self.scaled_frame_width+self.margin//3
             pilimage = Image.fromarray(self.npimg)
             self.tk_image[C] = ImageTk.PhotoImage(pilimage)
             self.canvas.create_image(self.margin//3 + C*W,0,anchor=tk.NW,image=self.tk_image[C])
-            self.canvas.create_text(20+C*W,yoff,font=huge_font, text=f"Frame {self.frame_idx}",anchor=tk.NW, fill="#fff")
+            self.canvas.create_text(self.margin//3 + 20+C*W,yoff,font=huge_font, text=f"Frame {self.frame_idx}",anchor=tk.NW, fill="#fff")
             yoff += LINE_SPACING
             self.canvas.create_text(20+C*W,yoff,anchor=tk.NW,fill="#ff8",text=f"Cam {C}",font=large_font)
             if self.x1 != self.x2 or self.y1 != self.y2:
@@ -301,7 +319,10 @@ class VidUI():
                 j1 = max(self.x1,self.x2)
                 i0 = min(self.y1,self.y2)
                 i1 = max(self.y1,self.y2)
-                self.canvas.create_rectangle(C*W+j0,i0,C*W+j1,i1,fill=None,outline="#0f0",width=2)
+                self.canvas.create_rectangle(self.margin//3 + C*W+j0,i0,C*W+j1,i1,fill=None,outline="#4e4",width=1)
+            else:
+                i0,i1,j0,j1 = self.scaled_cropbox
+                self.canvas.create_rectangle(self.margin//3 + C*W+j0,i0,C*W+j1,i1,fill=None,outline="#0f0",width=2)
             yoff += LINE_SPACING
             if self.annotations["ini_calib_frame"] == self.frame_idx:
                 self.canvas.create_text(20+C*W,yoff,text="INI CALIB",font=normal_font, anchor=tk.NW,fill="#8f0")
@@ -331,10 +352,12 @@ if __name__ == "__main__":
                     help="input video")
     ap.add_argument("--input-two", type=str, default=None,
                     help="input video")
-    ap.add_argument("--outfile", type=str, default="calibration_info.json",
-                    help="JSON output file.")
-    ap.add_argument("--infile",  type=str, default="calibration_info.json",
-                    help="JSON input file.")
+    ap.add_argument("--json-file", type=str, default=None,
+                    help="JSON input/output file.")
+    ap.add_argument("--rotation1", type=int, default=0,
+                    help="JSON input/output file.")
+    ap.add_argument("--rotation2", type=int, default=0,
+                    help="JSON input/output file.")
     
     args = vars(ap.parse_args())
     cap = [None,None]
@@ -342,7 +365,19 @@ if __name__ == "__main__":
     cap[0] = cv2.VideoCapture(args["input_one"])
     if args["input_two"] is not None:
         cap[1] = cv2.VideoCapture(args["input_two"])
-    gui  = VidUI(cap[0],cap[1],args["outfile"],args["infile"])
+
+    if args["json_file"] is None:
+        #
+        # asumimos estructura goproN/goproN_tomaM.mp4 para input y de ahi sacamos raiz
+        #
+        if args["input_two"] is not None:
+            json_path = os.path.commonpath((args["input_two"],args["input_one"]))
+        else:
+            json_path,_ = os.path.split(args["input_one"])
+        args["json_file"] = os.path.join(json_path,"annotations.json")
+
+    gui  = VidUI(cap[0],cap[1],args["rotation1"],args["rotation2"],args["json_file"])
+    
     if cap[0]:
         cap[0].release()
     if cap[1]:
