@@ -19,6 +19,104 @@ import cv2
 import matplotlib.pyplot as plt
 from skimage import io as imgio
 from skimage import transform as trans
+import json
+import os
+
+def compute_offsets(annotations):
+    sync_1 = annotations["sync_1"]
+    sync_2 = annotations["sync_2"]
+
+    if sync_1 < 0:
+        sync_1 = 0
+        print("WARNING: Assuming sync frame 1 is 0 (does not seem right but...)")
+
+    if sync_2 < 0:
+        sync_2 = 0
+        print("WARNING: Assuming sync frame 2 is 0 (does not seem right but...)")
+
+    if sync_1 == 0 and sync_2 == 0:
+        print("WARNING: both sync frames are 0. Did you really annotate this?")
+    
+    if sync_1 < sync_2:
+        # marker appeared in an earlier frame in camera 1 => it started AFTER camera 2
+        # so we discard sync_1 - sync_2 frames from camera 2 to put them in sync
+        offset = [0,sync_2 - sync_1]
+    else:
+        # vice versa
+        offset = [sync_1 - sync_2,0]
+    print(f"Frame offsets: input 1 {offset[0]} input 2 {offset[1]}")
+    return offset
+
+
+
+def do_white(cap,annotations,args):
+    
+    offset = compute_offsets(annotations)
+    cropbox = annotations["crop_box"]
+    prefix  = os.path.join(args["basedir"],args["output"])
+    # white frame
+    ini_white = annotations["ini_white_frame"]
+    end_white = annotations["end_white_frame"]    
+    n_white = end_white - ini_white
+    for c in range(ncam):
+        cap[c].set(cv2.CAP_PROP_POS_FRAMES, offset[c]+ini_white)
+
+        # Loop until the end of the video
+        max_frame = None
+        mean_frame = None
+        frame = None
+        t0 = time.time()
+        while (cap[c].isOpened()) and n < n_white:
+            # Capture frame-by-frame
+            if frame is None:
+                ret, frame = cap[c].read()
+            else:
+                ret, frame = cap[c].read(frame)
+            if not ret:
+                break
+            
+            color_frame = np.flip(np.array(frame),axis=2)
+            h,w,c = color_frame.shape
+            if rot[c]:
+                color_frame = 255*trans.rotate(color_frame,-rot,resize=True) # rotation scales colors to 0-1!!
+
+            gray_frame = 0.25*color_frame[:,:,0] + 0.5*color_frame[:,:,1] + 0.25*color_frame[:,:,2]
+            if n == 0:
+                h,w,c = color_frame.shape
+                mean_frame = np.zeros(color_frame.shape)
+                max_frame = np.zeros(gray_frame.shape)
+            
+
+            max_frame = np.maximum(max_frame,gray_frame)
+            mean_frame += color_frame
+
+            if not n % 10:
+                fps = n/(time.time()-t0)
+                imgio.imsave(f'{prefix}_input_white_{n:05d}.jpg',np.round(color_frame).astype(np.uint8))
+                print(f'frame {n:05d}  fps {fps:7.1f}')
+
+            n += 1
+
+        # release the video capture object
+        cap[c].release()
+        max_frame = np.round(max_frame).astype(np.uint8)
+        if cropbox is not None:
+            max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
+            np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
+        imgio.imsave(f'{prefix}_white_frame.png',max_frame)
+
+        mean_frame /= n_white
+        means = np.mean(np.mean(mean_frame,axis=0),axis=0)/255
+        np.savetxt(f'{prefix}_white_balance.txt',means,fmt='%8.4f')
+        print(f"mean white frame color:",means)
+
+
+def do_calib(cap,annotations,args):
+    #calib_info = [None,None]
+    #for c in range(ncam):
+    #    calib_info[c] = calibrate_single_camera(cap[c],annotations,args)
+    pass
+
 
 if __name__ == "__main__":
 
@@ -30,87 +128,56 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument('-s',"--start", type=int, required=True,
-                    help="First calibration frame in seconds.")
-    ap.add_argument('-f',"--finish", type=int, required=True,
-                    help="Last calibration frame in seconds.")
-    ap.add_argument('-c',"--cropbox", type=type_cropbox, default=None,help="cropping box: top,bottom,left,right")
-    ap.add_argument('-i',"--input", type=str, required=True,
-                    help="input video")
+    ap.add_argument('-D',"--basedir", type=str, defalt=".",
+                    help="Base directory. Everything else is relative to this one. ")
+    ap.add_argument('-a',"--annotation", type=int, required=True,
+                    help="Calibration JSON file produced by annotate. ")
     ap.add_argument('-o',"--output", type=str, required=True,
-                    help="output prefix. Three files are produced: one is an image with name prefix_wf.png and the other is a txt with three numbers called prefix_wb.txt, and another with the cropbox: prefix_cropbox.txt")
+                    help="Output prefix for data produced by this function. This is appended to basedir.")
     ap.add_argument('-m',"--method", type=str, default="max",
                     help="Method for computing the white frame. May be average,max,or an integer for the percentile (much slower).")
-    ap.add_argument('-R','--rotation',type=int,default=0,help="Optionally rotate the frames this many degrees clockwise (Defualts to 0).")
-
     args = vars(ap.parse_args())
 
-    cap = cv2.VideoCapture(args["input"])
-    fps = cap.get(cv2.CAP_PROP_FPS) 
-    print("frames per second: ",fps)
-    n0  = (np.round(args["start"]*fps))
-    n1  = int(np.round(args["finish"]*fps))
-    cropbox = args["cropbox"]
-    prefix  = args["output"]
-    rot     = args["rotation"]
-    # Loop until the end of the video
-    max_frame = None
-    mean_frame = None
-    frame = None
-    n = 0
-    t0 = time.time()
-    print(f"going from frame {n0} to frame {n1}")
-    while (cap.isOpened()):
-        # Capture frame-by-frame
-        if frame is None:
-            ret, frame = cap.read()
+    json_fname = args["annotation"]
+    basedir = args["basedir"]
+
+    with open(json_fname,"r") as f:
+        annotations = json.loads(f.read())
+        rot = [ annotations["rot1"], annotations["rot2"]]
+        input_fname = [None,None]
+        cap = [None,None]
+        fps = [None,None]
+        input_fname[0] = os.path.join(basedir,annotations["input_one"])
+        if annotations["input_two"]:
+            input_fname[1] = os.path.join(basedir,annotations["input_two"])
+            ncam = 2
         else:
-            ret, frame = cap.read(frame)
-        if not ret:
-            break
-        
-        n += 1
-        if n < n0:
-            continue
+            ncam = 1
+    
+    for c in range(ncam):
+        print(f"camera {c}:")
+        cap[c] = cv2.VideoCapture(input_fname[c])
+        fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
+        print("\tframes per second: ",fps[c])
+        print("\trotation:",rot[c])
 
-        color_frame = np.flip(np.array(frame),axis=2)
-        h,w,c = color_frame.shape
-        if n == n0:
-            print(f"input frame dimensions: height={h} width={w} channels={c}")        
-            print(f"rotating {rot} degrees.")
-        if rot:
-            color_frame = 255*trans.rotate(color_frame,-rot,resize=True) # rotation scales colors to 0-1!!
 
-        gray_frame = 0.25*color_frame[:,:,0] + 0.5*color_frame[:,:,1] + 0.25*color_frame[:,:,2]
-        if n == n0:
-            h,w,c = color_frame.shape
-            print(f"output frame dimensions: height={h} width={w} channels={c}")        
-            mean_frame = np.zeros(color_frame.shape)
-            max_frame = np.zeros(gray_frame.shape)
-        
+    crop_box = annotations["crop_box"]
+    prefix  = args["output"]
+    # white frame
+    ini_white = annotations["ini_white_frame"]
+    end_white = annotations["end_white_frame"]    
+    if ini_white * end_white >= 0:
+        print(f"Computing white frame using frames from {ini_white} to {end_white}")
+        do_white(cap,annotations,args)
+    else:
+        print("No white frame will be computed.")
 
-        max_frame = np.maximum(max_frame,gray_frame)
-        mean_frame += color_frame
-
-        if not n % 10:
-            fps = (n-n0)/(time.time()-t0)
-            imgio.imsave(f'{prefix}_input_white_{n:05d}.jpg',np.round(color_frame).astype(np.uint8))
-            print(f'frame {n:05d}  fps {fps:7.1f}')
-        
-        if n > n1:
-            break
-
-    # release the video capture object
-    cap.release()
-    max_frame = np.round(max_frame).astype(np.uint8)
-    if cropbox is not None:
-        max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
-        np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
-    imgio.imsave(f'{prefix}_white_frame.png',max_frame)
-
-    mean_frame /= (n-n0)
-    means = np.mean(np.mean(mean_frame,axis=0),axis=0)/255
-    np.savetxt(f'{prefix}_white_balance.txt',means,fmt='%8.4f')
-    print(f"mean white frame color:",means)
-
+    ini_calib = annotations["ini_calib_frame"]
+    end_calib = annotations["end_calib_frame"]
+    if ini_calib * end_calib >= 0:
+        print(f"Computing 3D calibration  using frames from {ini_calib} to {end_calib}")
+        do_calib(cap,annotations,args)
+    else:
+        print("No white frame will be computed.")
 
