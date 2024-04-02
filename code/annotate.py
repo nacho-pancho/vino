@@ -368,7 +368,7 @@ if __name__ == "__main__":
     cap = [None,None]
     fps = [None,None]
     input_one_path = os.path.join(args["basedir"],args["input_one"])
-    cap[0] = cv2.VideoCapture(args[input_one_path])
+    cap[0] = cv2.VideoCapture(input_one_path)
     if args["input_two"] is not None:
         input_two_path = os.path.join(args["basedir"],args["input_two"])
         cap[1] = cv2.VideoCapture(input_two_path)
