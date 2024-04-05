@@ -3,7 +3,9 @@ import numpy as np
 import cv2 as cv
 import os
 import argparse 
-
+#
+# cambio choto
+#
 def gather_calibration_points(img_dir,img_list,args):
     """
     Calibrates a single camera.
