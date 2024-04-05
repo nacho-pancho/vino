@@ -24,6 +24,8 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import json
 import os
+from tkinter import font as tkfont
+
 LINE_SPACING = 30
 FONT_SIZE = 20
 
@@ -123,14 +125,17 @@ class VidUI():
             "rot1": self.rot[0],
             "rot2": self.rot[1]
             }
+
+        helv = tkfont.Font(family='Helvetica', size=24, weight='bold')
+
         self.scaled_cropbox = [self.scale*x for x in self.annotations["crop_box"]]
         fmain = ttk.Frame(self.root)
-        print("scaled cropbox",self.scaled_cropbox)
         nav_bar = ttk.Frame(fmain,padding=2)
         ri = 0
         ci = 0
         basedir,_ = os.path.split(__file__)
         b = ttk.Button(nav_bar,text="<",image=tk.PhotoImage(file=os.path.join(basedir,"icons/back.png")),name="back1",padding=2,command=self.prev_frame)
+        #b = tk.Button(nav_bar,text="<",image=tk.PhotoImage(file=os.path.join(basedir,"icons/back.png")),name="back1",command=self.prev_frame,font=helv)
         b.grid(row=ri,column=ci)
         ci += 1
         b = ttk.Button(nav_bar,text=">",image=tk.PhotoImage(file=os.path.join(basedir,"icons/forward.png")),name="fwd1",padding=2,command=self.next_frame)
@@ -426,7 +431,6 @@ if __name__ == "__main__":
         json_path = args["json_file"]
     args["json_file"] = json_path
     print("json file:",json_path)
-    print(cap[1])
     gui  = VidUI(cap[0],cap[1],args)
     
     if cap[0]:
