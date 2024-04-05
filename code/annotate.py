@@ -63,9 +63,10 @@ class VidUI():
         self.gray_frame = [None,None]
         self.tk_image = [None,None]
         self.fps = [None,None]
-
+        self.nframes = 0
         for C in range(self.ncams):
             self.fps[C] = self.cap[C].get(cv2.CAP_PROP_FPS)
+            self.nframes = max(self.nframes,self.cap[C].get(cv2.CAP_PROP_FRAME_COUNT))
         self.frame_idx = 0
         self.grab_frame()
 
@@ -97,6 +98,7 @@ class VidUI():
         print("scaled frame shape h=",self.scaled_frame_height, "w=",self.scaled_frame_width)
         print("scale=",self.scale)
         self.drawing = False
+        self.speed = 25
         self.x1 = 0
         self.y1 = 0
         self.x2 = 0
@@ -107,8 +109,8 @@ class VidUI():
         # annotated parameters
         #
         self.annotations = {
-            "input_1":args["input_one"],
-            "input_2":args["input_two"],
+            "input_a":args["cam_a"],
+            "input_b":args["cam_b"],
             "ini_calib_frame":-1,
             "fin_calib_frame":-1,
             "ini_white_frame":-1,
@@ -127,16 +129,20 @@ class VidUI():
         nav_bar = ttk.Frame(fmain,padding=2)
         ri = 0
         ci = 0
-        b = ttk.Button(nav_bar,text="<<",name="back10",padding=2,command=self.prev_frame_10)
+        basedir,_ = os.path.split(__file__)
+        b = ttk.Button(nav_bar,text="<",image=tk.PhotoImage(file=os.path.join(basedir,"icons/back.png")),name="back1",padding=2,command=self.prev_frame)
         b.grid(row=ri,column=ci)
         ci += 1
-        b = ttk.Button(nav_bar,text="<|",name="back1",padding=2,command=self.prev_frame)
+        b = ttk.Button(nav_bar,text=">",image=tk.PhotoImage(file=os.path.join(basedir,"icons/forward.png")),name="fwd1",padding=2,command=self.next_frame)
         b.grid(row=ri,column=ci)
         ci += 1
-        b = ttk.Button(nav_bar,text="|>",name="fwd1",padding=2,command=self.next_frame)
+        b = ttk.Button(nav_bar,text="-",image=tk.PhotoImage(os.path.join(basedir,"icons/down.png")),name="slower",padding=2,command=self.slower)
         b.grid(row=ri,column=ci)
         ci += 1
-        b = ttk.Button(nav_bar,text=">>",name="fwd10",padding=2,command=self.next_frame_10)
+        self.speed_label = ttk.Label(nav_bar,text=f"{self.speed}",name="speed",padding=2)
+        self.speed_label.grid(row=ri,column=ci)
+        ci += 1
+        b = ttk.Button(nav_bar,text="+",image=tk.PhotoImage(os.path.join(basedir,"icons/up.png")),name="faster",padding=2,command=self.faster)
         b.grid(row=ri,column=ci)
         ci += 1
         b = ttk.Button(nav_bar, text='save', padding=2, command=self.save)
@@ -147,7 +153,8 @@ class VidUI():
         ci += 1
 
         nav_bar.pack(side=tk.BOTTOM)
-
+        self.slider = ttk.Scale(fmain,from_=0,to=self.nframes,variable=0,orient='horizontal',command=self.slide_to_frame)
+        self.slider.pack(side=tk.TOP,fill='x')
 
         side_bar = ttk.Frame(fmain,padding=2)
         ri = 0
@@ -267,34 +274,45 @@ class VidUI():
     def goto_frame(self,event):
         key = event.widget.winfo_name()[5:]
         idx = self.annotations[key]
+        idx = min(self.nframes,max(0,idx))
         self.frame_idx = idx
         self.grab_frame()
+        self.slider.set(self.frame_idx)
         self.update()
 
-    def next_frame(self):
-        self.frame_idx += 1
+
+    def slide_to_frame(self,event):
+        print("slide to frame", int(self.slider.get()))
+        self.frame_idx = int(self.slider.get())
         self.grab_frame()
         self.update()
 
 
-    def next_frame_10(self):
-        self.frame_idx += 10
+    def next_frame(self):
+        delta = min(self.nframes-self.frame_idx-1,self.speed)
+        self.frame_idx += self.speed
+        self.slider.set(self.frame_idx)
         self.grab_frame()
         self.update()
 
 
     def prev_frame(self):
-        if self.frame_idx > 0:
-            self.frame_idx -= 1
-            self.grab_frame()
-            self.update()
+        delta = min(self.speed,self.frame_idx)
+        self.frame_idx -= delta
+        self.slider.set(self.frame_idx)
+        self.grab_frame()
+        self.update()
 
+    def faster(self):
+        self.speed *= 5
+        self.speed_label['text'] = f"{self.speed:4d}"
+        self.update()
 
-    def prev_frame_10(self):
-        if self.frame_idx > 0:
-            self.frame_idx -= min(self.frame_idx,10)
-            self.grab_frame()
-            self.update()
+    def slower(self):
+        if self.speed >= 5:
+            self.speed //= 5
+        self.speed_label['text'] = f"{self.speed:4d}"
+        self.update()
  
 
     def update(self):
@@ -352,38 +370,63 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument("--basedir",type=str,default=".",help="all files will be relative to this directory.")
-    ap.add_argument("--input-one", type=str, required=True,
-                    help="input video")
-    ap.add_argument("--input-two", type=str, default=None,
-                    help="input video")
-    ap.add_argument("--json-file", type=str, default=None,
-                    help="JSON input/output file.")
-    ap.add_argument("--rotation1", type=int, default=0,
+    ap.add_argument("-D","--datadir",type=str,default=".",help="directorio donde se encuentran todos los datos.")
+    ap.add_argument("-a","--cam-a", type=str, required=True,
+                    help="primera cámara (siempre tiene que estar)")
+    ap.add_argument("-b","--cam-b", type=str, default=None,
+                    help="segunda cámara (si es un par)")
+    ap.add_argument("-t","--toma", type=int, required=True,
+                    help="número de toma")
+    ap.add_argument("-A","--adqdir", type=str, required=True,
+                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
+    ap.add_argument("-o","--json-file", type=str, default=None,
+                    help="Nombre de archivo de JSON con anotaciones. Si no se especifica se genera en base al resto de los parametros.")
+    ap.add_argument("-r","--rotation1", type=int, default=0,
                     help="rotation of first input.")
-    ap.add_argument("--rotation2", type=int, default=0,
+    ap.add_argument("-s","--rotation2", type=int, default=0,
                     help="rotation of second input.")
     
     args = vars(ap.parse_args())
     cap = [None,None]
     fps = [None,None]
-    input_one_path = os.path.join(args["basedir"],args["input_one"])
-    cap[0] = cv2.VideoCapture(input_one_path)
-    if args["input_two"] is not None:
-        input_two_path = os.path.join(args["basedir"],args["input_two"])
-        cap[1] = cv2.VideoCapture(input_two_path)
+    adq_path = os.path.join(args["datadir"],args["adqdir"])
+    print(f"Ruta absoluta de adquisicion: {adq_path}")
+    
+    cam_a = args["cam_a"]
+    toma = args["toma"]
+    cam_a_path = os.path.join(adq_path,cam_a)
+    print(f"Ruta a cámara {cam_a}: {cam_a_path}")
+    toma_a_path = os.path.join(cam_a_path,f"{cam_a}_toma{toma}.mp4")
+    print(f"Ruta a toma de cámara {cam_a}: {toma_a_path}")
+    cap[0] = cv2.VideoCapture(toma_a_path)
+    if cap[0] is None or not cap[0].isOpened():
+        print(f"Error al abrir archivo de video {toma_a_path}")
+        exit(1)
+
+    cam_b = args["cam_b"]
+    if cam_b is not None:
+        cam_b_path = os.path.join(adq_path,cam_b)
+        print(f"Ruta a cámara {cam_b}: {cam_b_path}")
+        toma_b_path = os.path.join(cam_b_path,f"{cam_b}_toma{toma}.mp4")
+        print(f"Ruta a toma de cámara {cam_b}: {toma_b_path}")
+        cap[1] = cv2.VideoCapture(toma_b_path)
+        if cap[1] is None or not cap[1].isOpened():
+            print(f"Error al abrir archivo de video {toma_b_path}")
+            exit(1)
 
     if args["json_file"] is None:
         #
         # asumimos estructura goproN/goproN_tomaM.mp4 para input y de ahi sacamos raiz
         #
-        if args["input_two"] is not None:
-            json_path = os.path.commonpath((args["input_two"],args["input_one"]))
+        if cam_b is not None:
+            json_path = os.path.join(adq_path,f"{cam_a}+{cam_b}_toma{toma}.json")
         else:
-            json_path,_ = os.path.split(args["input_one"])
-        args["json_file"] = os.path.join(args["basedir"],os.path.join(json_path,"annotations.json"))
-        print("json file:",args["json_file"])
-
+            json_path = os.path.join(adq_path,f"{cam_a}_toma{toma}.json")
+    else:
+        json_path = args["json_file"]
+    args["json_file"] = json_path
+    print("json file:",json_path)
+    print(cap[1])
     gui  = VidUI(cap[0],cap[1],args)
     
     if cap[0]:
