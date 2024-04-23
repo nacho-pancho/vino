@@ -380,8 +380,10 @@ if __name__ == "__main__":
                     help="primera cámara (siempre tiene que estar)")
     ap.add_argument("-b","--cam-b", type=str, default=None,
                     help="segunda cámara (si es un par)")
-    ap.add_argument("-t","--toma", type=int, required=True,
+    ap.add_argument("-t","--toma", type=int, default=1,
                     help="número de toma")
+    ap.add_argument("-p","--parte", type=int, default=1,
+                    help="número de parte (en gral. para calibrar usamos siempre la 1)")
     ap.add_argument("-A","--adqdir", type=str, required=True,
                     help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
     ap.add_argument("-o","--json-file", type=str, default=None,
@@ -399,9 +401,11 @@ if __name__ == "__main__":
     
     cam_a = args["cam_a"]
     toma = args["toma"]
+    parte = args["parte"]
+
     cam_a_path = os.path.join(adq_path,cam_a)
     print(f"Ruta a cámara {cam_a}: {cam_a_path}")
-    toma_a_path = os.path.join(cam_a_path,f"{cam_a}_toma{toma}.mp4")
+    toma_a_path = os.path.join(cam_a_path,f"{cam_a}_toma{toma}_parte{parte}.mp4")
     print(f"Ruta a toma de cámara {cam_a}: {toma_a_path}")
     cap[0] = cv2.VideoCapture(toma_a_path)
     if cap[0] is None or not cap[0].isOpened():
@@ -412,7 +416,7 @@ if __name__ == "__main__":
     if cam_b is not None:
         cam_b_path = os.path.join(adq_path,cam_b)
         print(f"Ruta a cámara {cam_b}: {cam_b_path}")
-        toma_b_path = os.path.join(cam_b_path,f"{cam_b}_toma{toma}.mp4")
+        toma_b_path = os.path.join(cam_b_path,f"{cam_b}_toma{toma}_parte{parte}.mp4")
         print(f"Ruta a toma de cámara {cam_b}: {toma_b_path}")
         cap[1] = cv2.VideoCapture(toma_b_path)
         if cap[1] is None or not cap[1].isOpened():
