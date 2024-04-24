@@ -48,13 +48,30 @@ def compute_offsets(annotations):
     return offset
 
 
+def fast_rot(img,rot):
+    if rot < 0:
+        rot += 360
+    if rot == 0:
+        return img
+    elif rot == 90:
+        return np.transpose(np.flip(img,axis=0),(1,0,2))
+    elif rot == 270:
+        return np.flip(np.transpose(img,(1,0,2)),axis=0)
+    elif rot == 180:
+        return np.flip(np.flip(img,axis=0),axis=1)
+    else:
+        return (255*trans.rotate(img,rot,resize=True)).astype(np.uint8) # rotation scales colors to 0-1!!
+
 
 def do_white(annotations,args):
 
     input_fname = [None,None]
-    input_fname[0] = os.path.join(basedir,annotations["input_one"])
-    if annotations["input_two"]:
-        input_fname[1] = os.path.join(basedir,annotations["input_two"])
+    input_a = annotations["input_a"]
+    take = annotations["take"]
+    input_fname[0] = os.path.join(basedir,f'{input_a}/{input_a}_toma{take}_parte1.mp4')
+    if annotations["input_b"]:
+        input_b = annotations["input_b"]
+        input_fname[1] = os.path.join(basedir,f'{input_b}/{input_b}_toma{take}_parte1.mp4')
         ncam = 2
     else:
         ncam = 1
@@ -94,35 +111,34 @@ def do_white(annotations,args):
             
             color_frame = np.flip(np.array(frame),axis=2)
             h,w,_ = color_frame.shape
-            if rot[c]:
-                color_frame = 255*trans.rotate(color_frame,-rot,resize=True) # rotation scales colors to 0-1!!
-
-            gray_frame = 0.25*color_frame[:,:,0] + 0.5*color_frame[:,:,1] + 0.25*color_frame[:,:,2]
+            color_frame = fast_rot(color_frame,-rot[c])
+            gray_frame = (np.sum(color_frame,axis=2))//3 # R + G + B
+            print('Saturados:',100*np.sum(gray_frame == 255)/np.prod(gray_frame.shape),'%')
             if n == 0:
                 h,w,_ = color_frame.shape
-                mean_frame = np.zeros(color_frame.shape)
-                max_frame = np.zeros(gray_frame.shape)
+                mean_frame = np.zeros(color_frame.shape,dtype=np.uint32)
+                max_frame = np.zeros(gray_frame.shape,dtype=np.uint8)
             
 
             max_frame = np.maximum(max_frame,gray_frame)
             mean_frame += color_frame
-
             if not n % 10:
                 fps = n/(time.time()-t0)
-                imgio.imsave(os.path.join(prefix,f'input_white_{n:05d}.jpg',np.round(color_frame).astype(np.uint8)))
-                print(f'frame {n:05d}  fps {fps:7.1f}')
+                if not os.path.exists(prefix):
+                    os.makedirs(prefix,exist_ok=True)
+                imgio.imsave(os.path.join(prefix,f'input_white_{n+ini_white:05d}.jpg'),color_frame)
+                print(f'frame {n+ini_white:05d}  fps {fps:7.1f}')
 
             n += 1
 
         # release the video capture object
         cap[c].release()
-        max_frame = np.round(max_frame).astype(np.uint8)
         if cropbox is not None:
             max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
             np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
         imgio.imsave(f'{prefix}_white_frame.png',max_frame)
 
-        mean_frame /= n_white
+        mean_frame //= n_white
         means = np.mean(np.mean(mean_frame,axis=0),axis=0)/255
         np.savetxt(f'{prefix}_white_balance.txt',means,fmt='%8.4f')
         print(f"mean white frame color:",means)
