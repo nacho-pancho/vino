@@ -82,7 +82,7 @@ def do_white(annotations,args):
     prefix  = os.path.join(args["basedir"],args["output"])
     # white frame
     ini_white = annotations["ini_white_frame"]
-    end_white = annotations["fin_white_frame"]    
+    end_white = annotations["fin_white_frame"]
     n_white = end_white - ini_white
     fps = [None,None]
     cap = [None,None]
@@ -100,6 +100,7 @@ def do_white(annotations,args):
         frame = None
         n = 0
         t0 = time.time()
+        print(ini_white)    
         while (cap[c].isOpened()) and n < n_white:
             # Capture frame-by-frame
             if frame is None:
@@ -113,7 +114,7 @@ def do_white(annotations,args):
             h,w,_ = color_frame.shape
             color_frame = fast_rot(color_frame,-rot[c])
             gray_frame = (np.sum(color_frame,axis=2))//3 # R + G + B
-            print('Saturados:',100*np.sum(gray_frame == 255)/np.prod(gray_frame.shape),'%')
+            #print('Saturados:',100*np.sum(gray_frame == 255)/np.prod(gray_frame.shape),'%')
             if n == 0:
                 h,w,_ = color_frame.shape
                 mean_frame = np.zeros(color_frame.shape,dtype=np.uint32)
@@ -122,21 +123,22 @@ def do_white(annotations,args):
 
             max_frame = np.maximum(max_frame,gray_frame)
             mean_frame += color_frame
-            if not n % 10:
-                fps = n/(time.time()-t0)
+            if not n % 50:
+                _fps = n/(time.time()-t0)
                 if not os.path.exists(prefix):
                     os.makedirs(prefix,exist_ok=True)
-                imgio.imsave(os.path.join(prefix,f'input_white_{n+ini_white:05d}.jpg'),color_frame)
-                print(f'frame {n+ini_white:05d}  fps {fps:7.1f}')
+                imgio.imsave(os.path.join(prefix,f'input_{c}_white_{n+ini_white:05d}.jpg'),color_frame)
+                print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')
 
             n += 1
 
         # release the video capture object
         cap[c].release()
         if cropbox is not None:
-            max_frame = max_frame[cropbox[0]:cropbox[1],cropbox[2]:cropbox[3]]
-            np.savetxt(f'{prefix}_cropbox.txt',cropbox,fmt='%5d')
-        imgio.imsave(f'{prefix}_white_frame.png',max_frame)
+            max_frame = max_frame[cropbox[0]:cropbox[2],cropbox[1]:cropbox[3]]
+            print(max_frame.dtype)
+            np.savetxt(os.path.join(prefix,'cropbox.txt'),cropbox,fmt='%5d')
+        imgio.imsave(os.path.join(prefix,'/input{c}_white_frame.png'),max_frame.astype(np.uint8))
 
         mean_frame //= n_white
         means = np.mean(np.mean(mean_frame,axis=0),axis=0)/255
@@ -188,7 +190,7 @@ if __name__ == "__main__":
         end_calib = annotations["fin_calib_frame"]
         if ini_calib * end_calib >= 0:
             print(f"Computing 3D calibration  using frames from {ini_calib} to {end_calib}")
-            do_calib(cap,annotations,args)
+            do_calib(annotations,args)
         else:
             print("No white frame will be computed.")
 
