@@ -69,21 +69,28 @@ def do_white(annotations,args):
     input_a = annotations["input_a"]
     take = annotations["take"]
     input_fname[0] = os.path.join(basedir,f'{input_a}/{input_a}_toma{take}_parte1.mp4')
+    prefix = args["output"]
     if annotations["input_b"]:
         input_b = annotations["input_b"]
         input_fname[1] = os.path.join(basedir,f'{input_b}/{input_b}_toma{take}_parte1.mp4')
+        if prefix is None:
+            prefix  = os.path.join(args["basedir"],f'{input_a}+{input_b}.calib')
         ncam = 2
     else:
+        if prefix is None:
+            prefix  = os.path.join(args["basedir"],f'{input_a}.calib')
         ncam = 1
     rot = [ annotations["rot1"], annotations["rot2"]]
+    if not os.path.exists(prefix):
+        os.makedirs(prefix,exist_ok=True)
 
     offset = compute_offsets(annotations)
     cropbox = annotations["crop_box"]
-    prefix  = os.path.join(args["basedir"],args["output"])
     # white frame
     ini_white = annotations["ini_white_frame"]
     end_white = annotations["fin_white_frame"]
     n_white = end_white - ini_white
+    n_white = 10 # DEBUG
     fps = [None,None]
     cap = [None,None]
     for c in range(ncam):
@@ -125,8 +132,6 @@ def do_white(annotations,args):
             mean_frame += color_frame
             if not n % 50:
                 _fps = n/(time.time()-t0)
-                if not os.path.exists(prefix):
-                    os.makedirs(prefix,exist_ok=True)
                 imgio.imsave(os.path.join(prefix,f'input_{c}_white_{n+ini_white:05d}.jpg'),color_frame)
                 print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')
 
@@ -138,7 +143,7 @@ def do_white(annotations,args):
             max_frame = max_frame[cropbox[0]:cropbox[2],cropbox[1]:cropbox[3]]
             print(max_frame.dtype)
             np.savetxt(os.path.join(prefix,'cropbox.txt'),cropbox,fmt='%5d')
-        imgio.imsave(os.path.join(prefix,'/input{c}_white_frame.png'),max_frame.astype(np.uint8))
+        imgio.imsave(os.path.join(prefix,f'input{c}_white_frame.png'),max_frame.astype(np.uint8))
 
         mean_frame //= n_white
         means = np.mean(np.mean(mean_frame,axis=0),axis=0)/255
@@ -146,7 +151,7 @@ def do_white(annotations,args):
         print(f"mean white frame color:",means)
 
 
-def do_calib(cap,annotations,args):
+def do_calib(annotations,args):
     #calib_info = [None,None]
     #for c in range(ncam):
     #    calib_info[c] = calibrate_single_camera(cap[c],annotations,args)
@@ -163,7 +168,7 @@ if __name__ == "__main__":
                     help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=str, required=True,
                     help="Calibration JSON file produced by annotate. ")
-    ap.add_argument('-o',"--output", type=str, required=True,
+    ap.add_argument('-o',"--output", type=str, default=None,
                     help="Output prefix for data produced by this function. This is appended to basedir.")
     ap.add_argument('-m',"--method", type=str, default="max",
                     help="Method for computing the white frame. May be average,max,or an integer for the percentile (much slower).")
