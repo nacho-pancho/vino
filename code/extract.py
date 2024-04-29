@@ -99,12 +99,9 @@ def extract(annotations,calibration,args):
         print("\trotation:",rot[c])
 
         # Loop until the end of the video
-        max_frame = None
-        mean_frame = None
         frame = None
         n = 0
         t0 = time.time()
-        print(ini_white)    
         mean_red = 0
         mean_green = 0
         mean_blue = 0
