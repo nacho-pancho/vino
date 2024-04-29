@@ -68,6 +68,7 @@ def do_white(annotations,args):
     input_fname = [None,None]
     input_a = annotations["input_a"]
     take = annotations["take"]
+    res_fac = args["rescale_factor"]
     input_fname[0] = os.path.join(basedir,f'{input_a}/{input_a}_toma{take}_parte1.mp4')
     prefix = args["output"]
     if annotations["input_b"]:
@@ -90,7 +91,7 @@ def do_white(annotations,args):
     ini_white = annotations["ini_white_frame"]
     end_white = annotations["fin_white_frame"]
     n_white = end_white - ini_white
-    n_white = 10 # DEBUG
+    #n_white = 20 # DEBUG
     fps = [None,None]
     cap = [None,None]
     for c in range(ncam):
@@ -108,7 +109,11 @@ def do_white(annotations,args):
         n = 0
         t0 = time.time()
         print(ini_white)    
-        while (cap[c].isOpened()) and n < n_white:
+        mean_red = 0
+        mean_green = 0
+        mean_blue = 0
+        num_valid = 0
+        while (cap[c].isOpened()) and n < n_white: # ----- loop over frames
             # Capture frame-by-frame
             if frame is None:
                 ret, frame = cap[c].read()
@@ -116,40 +121,90 @@ def do_white(annotations,args):
                 ret, frame = cap[c].read(frame)
             if not ret:
                 break
-            
-            color_frame = np.flip(np.array(frame),axis=2)
-            h,w,_ = color_frame.shape
+            h,w,ch = frame.shape
+            color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
+            color_frame = np.flip(np.array(color_frame),axis=2)
+            # brutal resizing
+            h,w,ch = color_frame.shape
             color_frame = fast_rot(color_frame,-rot[c])
-            gray_frame = (np.sum(color_frame,axis=2))//3 # R + G + B
             #print('Saturados:',100*np.sum(gray_frame == 255)/np.prod(gray_frame.shape),'%')
             if n == 0:
                 h,w,_ = color_frame.shape
-                mean_frame = np.zeros(color_frame.shape,dtype=np.uint32)
+                gray_frame = np.zeros((h,w),dtype=np.uint8)
+                valid_pixels = np.zeros((h,w),dtype=bool)
                 max_frame = np.zeros(gray_frame.shape,dtype=np.uint8)
             
+            gray_frame[:] = np.squeeze((np.sum(color_frame,axis=2))//3) # R + G + B
+            valid_pixels[:] = gray_frame < 255
+            num_valid  += np.sum(valid_pixels)
+            mean_red   += np.sum(color_frame[:,:,0]*valid_pixels)
+            mean_green += np.sum(color_frame[:,:,1]*valid_pixels)
+            mean_blue  += np.sum(color_frame[:,:,2]*valid_pixels)
+            max_frame[:] = np.maximum(max_frame,gray_frame)
 
-            max_frame = np.maximum(max_frame,gray_frame)
-            mean_frame += color_frame
-            if not n % 50:
+            if not n % 30:
                 _fps = n/(time.time()-t0)
                 imgio.imsave(os.path.join(prefix,f'input_{c}_white_{n+ini_white:05d}.jpg'),color_frame)
                 print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')
 
             n += 1
+            # ------------------- end loop over frames
 
         # release the video capture object
         cap[c].release()
         if cropbox is not None:
-            max_frame = max_frame[cropbox[0]:cropbox[2],cropbox[1]:cropbox[3]]
-            print(max_frame.dtype)
-            np.savetxt(os.path.join(prefix,'cropbox.txt'),cropbox,fmt='%5d')
+            # cropbox is top left bottom right
+            i0 = cropbox[0]//res_fac
+            j0 = cropbox[1]//res_fac
+            i1 = cropbox[2]//res_fac
+            j1 = cropbox[3]//res_fac
+            cropbox_res = (i0,j0,i1,j1)
+            max_frame = max_frame[i0:i1,j0:j1]
+            np.savetxt(os.path.join(prefix,'cropbox_orig.txt'),cropbox,fmt='%5d')
+            np.savetxt(os.path.join(prefix,'cropbox_rescaled.txt'),cropbox_res,fmt='%5d')
         imgio.imsave(os.path.join(prefix,f'input{c}_white_frame.png'),max_frame.astype(np.uint8))
-
-        mean_frame //= n_white
-        means = np.mean(np.mean(mean_frame,axis=0),axis=0)/255
-        np.savetxt(f'{prefix}_white_balance.txt',means,fmt='%8.4f')
+        means = (mean_red/num_valid,mean_green/num_valid,mean_blue/num_valid)
+        np.savetxt(os.path.join(prefix,f'input{c}_white_balance.txt'),means,fmt='%8.4f')
         print(f"mean white frame color:",means)
-
+        #
+        # compute illumination curve as a second order curve from the non-saturated pixels
+        #
+        # we build a regression problem of the form (1,r,w,r^2,r*w,w^2) -> L
+        # 
+        ri = np.arange(max_frame.shape[0])
+        ci = np.arange(max_frame.shape[1])
+        Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
+        Ri = Ri.ravel()
+        Ci = Ci.ravel()
+        L = max_frame.ravel()
+        VP = np.flatnonzero(L < 255)
+        L = L[VP]
+        Ri = Ri[VP]
+        Ci = Ci[VP]
+        N = len(VP)
+        TN = np.prod(max_frame.shape)
+        print('Total pixels:',TN,' Valid pixels:',N)
+        X = np.ones((N,6))
+        X[:,1] = Ri
+        X[:,2] = Ci
+        X[:,3] = Ri**2
+        X[:,4] = Ri*Ci
+        X[:,5] = Ci**2
+        print(X.shape,L.shape)
+        a,rss,rank,sval = np.linalg.lstsq(X,L)
+        print(a)
+        #
+        # compute approximated white frame 
+        #        
+        ri = np.arange(max_frame.shape[0])
+        ci = np.arange(max_frame.shape[1])
+        Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
+        white_frame = a[0] + a[1]*Ri + a[2]*Ci + a[3]*(Ri**2) + a[4]*(Ri*Ci) + a[5]*(Ci**2)
+        np.save(os.path.join(prefix,f'input{c}_white_frame_par.npy'),white_frame)
+        # very likely, the computed parametric white frame falls out of the valid range if there were many saturated
+        # pixels, so we downscale the output image. We will use the saved matrix (npy), not this, for normalization
+        white_frame = (white_frame*(255/np.max(white_frame))).astype(np.uint8)
+        imgio.imsave(os.path.join(prefix,f'input{c}_white_frame_par.png'),white_frame)
 
 def do_calib(annotations,args):
     #calib_info = [None,None]
@@ -164,6 +219,8 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
+    ap.add_argument('-r',"--rescale-factor", type=int, default=8,
+                    help="Reduce resolution this many times (defaults to 8 -- brutal). ")
     ap.add_argument('-D',"--basedir", type=str, default=".",
                     help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=str, required=True,
