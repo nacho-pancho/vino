@@ -376,9 +376,9 @@ if __name__ == "__main__":
     # mmetadata
     #
     ap.add_argument("-D","--datadir",type=str,default=".",help="directorio donde se encuentran todos los datos.")
-    ap.add_argument("-a","--cam-a", type=str, required=True,
+    ap.add_argument("-a","--camera-a", type=str, required=True,
                     help="primera cámara (siempre tiene que estar)")
-    ap.add_argument("-b","--cam-b", type=str, default=None,
+    ap.add_argument("-b","--camera-b", type=str, default=None,
                     help="segunda cámara (si es un par)")
     ap.add_argument("-t","--toma", type=int, default=1,
                     help="número de toma")

@@ -132,21 +132,18 @@ def extract(annotations,calibration,args):
 
             color_frame = np.flip(np.array(color_frame),axis=2)            
             color_frame = fast_rot(color_frame,-rot[c])
-            imgio.imsave(os.path.join(output_dir,frame_name+'_before.jpg'),color_frame)
+            #imgio.imsave(os.path.join(output_dir,frame_name+'_before.jpg'),color_frame)
             color_frame = color_frame.astype(float)
             if white_frame is None:
                 white_frame = np.load(os.path.join(calibration_dir,calibration[camera]["white_frame_matrix"]))
                 hw,ww = white_frame.shape
                 white_frame = trans.resize(white_frame,(hw//res_fac,ww//res_fac))*(1/255)
-            print('wf',np.min(white_frame),np.max(white_frame))
             h,w,ch = color_frame.shape
-            print('cf before',np.min(color_frame),np.max(color_frame))
             color_frame[:,:,0] = (color_frame[:,:,0]/white_frame)*(255/white_balance["red"]) # both white balance and white frame are 0-255
             color_frame[:,:,1] = (color_frame[:,:,1]/white_frame)*(255/white_balance["green"])
             color_frame[:,:,2] = (color_frame[:,:,2]/white_frame)*(255/white_balance["blue"])            
-            print('cf after',np.min(color_frame),np.max(color_frame))
             color_frame = np.maximum(0,np.minimum(255,color_frame)).astype(np.uint8)
-            imgio.imsave(os.path.join(output_dir,frame_name+'_after.jpg'),color_frame)
+            imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame)
             _fps = (n+1)/(time.time()-t0)
             print(f'frame {n+ini_data:05d}  fps {_fps:7.1f}')
             # ------------------- end loop over frames
@@ -163,8 +160,8 @@ if __name__ == "__main__":
     #
     ap.add_argument('-r',"--rescale-factor", type=int, default=4,
                     help="Reduce output this many times (defaults to 4). ")
-    ap.add_argument('-s',"--skip", type=int, default=10,
-                    help="Output every this number of frames (defaults to 10). ")
+    ap.add_argument('-s',"--skip", type=int, default=5,
+                    help="Output every this number of frames (defaults to 5). ")
     ap.add_argument('-D',"--basedir", type=str, default=".",
                     help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=str, required=True,

@@ -195,8 +195,6 @@ def do_white(annotations,args,output_dir):
         Ri = Ri.ravel()
         Ci = Ci.ravel()
         L = max_frame.ravel()
-        max_frame[max_frame == 255]  = 0
-        print(L)
         VP = np.flatnonzero(L < 255)
         L = L[VP]
         Ri = Ri[VP]
@@ -212,22 +210,21 @@ def do_white(annotations,args,output_dir):
         X[:,5] = Ci**2
         print(X.shape,L.shape)
         a,rss,rank,sval = np.linalg.lstsq(X,L,rcond=None)
-        print(a)
         calibration_c["white_frame_parameters"] = a.tolist()
         #
         # compute approximated white frame 
         #
         # DEBUG
-        ri = np.arange(i0r,i1r)/hr
-        ci = np.arange(j0r,j1r)/wr
-        Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
-        white_frame = a[0] + a[1]*Ri + a[2]*Ci + a[3]*(Ri**2) + a[4]*(Ri*Ci) + a[5]*(Ci**2)
-        white_frame = np.maximum(0,np.minimum(255,white_frame)).astype(np.uint8)
-        wf_image_fname = os.path.join(output_dir,f'camera{c+1}_white_frame_par_test.png')
-        imgio.imsave(wf_image_fname,white_frame)
-        plt.figure()
-        plt.imshow(white_frame)
-        plt.show()
+        #ri = np.arange(i0r,i1r)/hr
+        #ci = np.arange(j0r,j1r)/wr
+        #Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
+        #white_frame = a[0] + a[1]*Ri + a[2]*Ci + a[3]*(Ri**2) + a[4]*(Ri*Ci) + a[5]*(Ci**2)
+        #white_frame = np.maximum(0,np.minimum(255,white_frame)).astype(np.uint8)
+        #wf_image_fname = os.path.join(output_dir,f'camera{c+1}_white_frame_par_test.png')
+        #imgio.imsave(wf_image_fname,white_frame)
+        #plt.figure()
+        #plt.imshow(white_frame)
+        #plt.show()
         # end debug
 
         ri = np.arange(h0)/h0
