@@ -109,10 +109,10 @@ class VidUI():
 
         #
         # annotated parameters
-        #
+    
         self.annotations = {
-            "input_a":args["cam_a"],
-            "input_b":args["cam_b"],
+            "camera_a":args["camera_a"],
+            "camera_b":args["camera_b"],
             "ini_calib_frame":-1,
             "fin_calib_frame":-1,
             "ini_white_frame":-1,
@@ -399,25 +399,25 @@ if __name__ == "__main__":
     adq_path = os.path.join(args["datadir"],args["adqdir"])
     print(f"Ruta absoluta de adquisicion: {adq_path}")
     
-    cam_a = args["cam_a"]
+    camera_a = args["camera_a"]
     toma = args["toma"]
     parte = args["parte"]
 
-    cam_a_path = os.path.join(adq_path,cam_a)
-    print(f"Ruta a cámara {cam_a}: {cam_a_path}")
-    toma_a_path = os.path.join(cam_a_path,f"{cam_a}_toma{toma}_parte{parte}.mp4")
-    print(f"Ruta a toma de cámara {cam_a}: {toma_a_path}")
+    camera_a_path = os.path.join(adq_path,camera_a)
+    print(f"Ruta a cámara {camera_a}: {camera_a_path}")
+    toma_a_path = os.path.join(camera_a_path,f"{camera_a}_toma{toma}_parte{parte}.mp4")
+    print(f"Ruta a toma de cámara {camera_a}: {toma_a_path}")
     cap[0] = cv2.VideoCapture(toma_a_path)
     if cap[0] is None or not cap[0].isOpened():
         print(f"Error al abrir archivo de video {toma_a_path}")
         exit(1)
 
-    cam_b = args["cam_b"]
-    if cam_b is not None:
-        cam_b_path = os.path.join(adq_path,cam_b)
-        print(f"Ruta a cámara {cam_b}: {cam_b_path}")
-        toma_b_path = os.path.join(cam_b_path,f"{cam_b}_toma{toma}_parte{parte}.mp4")
-        print(f"Ruta a toma de cámara {cam_b}: {toma_b_path}")
+    camera_b = args["camera_b"]
+    if camera_b is not None:
+        camera_b_path = os.path.join(adq_path,camera_b)
+        print(f"Ruta a cámara {camera_b}: {camera_b_path}")
+        toma_b_path = os.path.join(camera_b_path,f"{camera_b}_toma{toma}_parte{parte}.mp4")
+        print(f"Ruta a toma de cámara {camera_b}: {toma_b_path}")
         cap[1] = cv2.VideoCapture(toma_b_path)
         if cap[1] is None or not cap[1].isOpened():
             print(f"Error al abrir archivo de video {toma_b_path}")
@@ -427,10 +427,10 @@ if __name__ == "__main__":
         #
         # asumimos estructura goproN/goproN_tomaM.mp4 para input y de ahi sacamos raiz
         #
-        if cam_b is not None:
-            json_path = os.path.join(adq_path,f"{cam_a}+{cam_b}_toma{toma}.json")
+        if camera_b is not None:
+            json_path = os.path.join(adq_path,f"{camera_a}+{camera_b}_toma{toma}.json")
         else:
-            json_path = os.path.join(adq_path,f"{cam_a}_toma{toma}.json")
+            json_path = os.path.join(adq_path,f"{camera_a}_toma{toma}.json")
     else:
         json_path = args["json_file"]
     args["json_file"] = json_path

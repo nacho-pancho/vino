@@ -44,7 +44,7 @@ def compute_offsets(annotations):
     else:
         # vice versa
         offset = [sync_1 - sync_2,0]
-    print(f"Frame offsets: input 1 {offset[0]} input 2 {offset[1]}")
+    print(f"Frame offsets: camera 1:{offset[0]} camera 2:{offset[1]}")
     return offset
 
 
@@ -63,42 +63,59 @@ def fast_rot(img,rot):
         return (255*trans.rotate(img,rot,resize=True)).astype(np.uint8) # rotation scales colors to 0-1!!
 
 
-def do_white(annotations,args):
-
+def do_white(annotations,args,output_dir):
+    calibration = dict()
     input_fname = [None,None]
-    input_a = annotations["input_a"]
+    camera_a = annotations["camera_a"]
     take = annotations["take"]
     res_fac = args["rescale_factor"]
-    input_fname[0] = os.path.join(basedir,f'{input_a}/{input_a}_toma{take}_parte1.mp4')
-    prefix = args["output"]
-    if annotations["input_b"]:
-        input_b = annotations["input_b"]
-        input_fname[1] = os.path.join(basedir,f'{input_b}/{input_b}_toma{take}_parte1.mp4')
-        if prefix is None:
-            prefix  = os.path.join(args["basedir"],f'{input_a}+{input_b}.calib')
+    input_fname[0] = os.path.join(basedir,f'{camera_a}/{camera_a}_toma{take}_parte1.mp4')
+    calibration["camera1"] = {"input_fname":input_fname[0]} 
+    if annotations["camera_b"]:
+        camera_b = annotations["camera_b"]
+        input_fname[1] = os.path.join(basedir,f'{camera_b}/{camera_b}_toma{take}_parte1.mp4')
+        calibration["camera2"] = {"input_fname":input_fname[1]}
         ncam = 2
+        calibration["ncam"] = 2
+        rot = [ annotations["rot1"], annotations["rot2"]]
+        offset = compute_offsets(annotations)
     else:
-        if prefix is None:
-            prefix  = os.path.join(args["basedir"],f'{input_a}.calib')
         ncam = 1
-    rot = [ annotations["rot1"], annotations["rot2"]]
-    if not os.path.exists(prefix):
-        os.makedirs(prefix,exist_ok=True)
-
-    offset = compute_offsets(annotations)
+        calibration["ncam"] = 1
+        rot = annotations["rot1"]
+        calibration["camera1"]["rotation"]=rot
+        calibration["camera1"]["offset"]=0
+        offset = [0,0]
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir,exist_ok=True)
+        
     cropbox = annotations["crop_box"]
+    i0,j0,i1,j1 = cropbox
+    i0r = i0//res_fac
+    j0r = j0//res_fac
+    i1r = i1//res_fac
+    j1r = j1//res_fac
+    calibration["cropbox_rescaled"] = {"top":i0r,"left":j0r,"bottom":i1r,"right":j1r}
+    calibration["cropbox_orig"] = cropbox
     # white frame
     ini_white = annotations["ini_white_frame"]
     end_white = annotations["fin_white_frame"]
     n_white = end_white - ini_white
-    #n_white = 20 # DEBUG
+    n_white = 20 # DEBUG
     fps = [None,None]
     cap = [None,None]
     for c in range(ncam):
         print(f"camera {c}:")
+
         cap[c] = cv2.VideoCapture(input_fname[c])
         cap[c].set(cv2.CAP_PROP_POS_FRAMES, offset[c]+ini_white)
         fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
+        camera_c_key = f"camera{c+1}"
+        calibration_c = dict() 
+        calibration_c["input_fname"] = input_fname[c]
+        calibration_c["offset"]=offset[c]
+        calibration_c["fps"] = fps[c]
+        calibration_c["rotation"] = rot[c]
         print("\tframes per second: ",fps[c])
         print("\trotation:",rot[c])
 
@@ -121,17 +138,16 @@ def do_white(annotations,args):
                 ret, frame = cap[c].read(frame)
             if not ret:
                 break
-            h,w,ch = frame.shape
-            color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
+            color_frame = fast_rot(frame,-rot[c])
+            h0,w0,_ = color_frame.shape
+            color_frame = cv2.resize(color_frame,(w0//res_fac,h0//res_fac))
             color_frame = np.flip(np.array(color_frame),axis=2)
             # brutal resizing
-            h,w,ch = color_frame.shape
-            color_frame = fast_rot(color_frame,-rot[c])
+            hr,wr,_ = color_frame.shape
             #print('Saturados:',100*np.sum(gray_frame == 255)/np.prod(gray_frame.shape),'%')
             if n == 0:
-                h,w,_ = color_frame.shape
-                gray_frame = np.zeros((h,w),dtype=np.uint8)
-                valid_pixels = np.zeros((h,w),dtype=bool)
+                gray_frame = np.zeros((hr,wr),dtype=np.uint8)
+                valid_pixels = np.zeros((hr,wr),dtype=bool)
                 max_frame = np.zeros(gray_frame.shape,dtype=np.uint8)
             
             gray_frame[:] = np.squeeze((np.sum(color_frame,axis=2))//3) # R + G + B
@@ -144,7 +160,7 @@ def do_white(annotations,args):
 
             if not n % 30:
                 _fps = n/(time.time()-t0)
-                imgio.imsave(os.path.join(prefix,f'input_{c}_white_{n+ini_white:05d}.jpg'),color_frame)
+                imgio.imsave(os.path.join(output_dir,f'camera{c+1}_white_{n+ini_white:05d}.jpg'),color_frame)
                 print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')
 
             n += 1
@@ -154,29 +170,33 @@ def do_white(annotations,args):
         cap[c].release()
         if cropbox is not None:
             # cropbox is top left bottom right
-            i0 = cropbox[0]//res_fac
-            j0 = cropbox[1]//res_fac
-            i1 = cropbox[2]//res_fac
-            j1 = cropbox[3]//res_fac
-            cropbox_res = (i0,j0,i1,j1)
-            max_frame = max_frame[i0:i1,j0:j1]
-            np.savetxt(os.path.join(prefix,'cropbox_orig.txt'),cropbox,fmt='%5d')
-            np.savetxt(os.path.join(prefix,'cropbox_rescaled.txt'),cropbox_res,fmt='%5d')
-        imgio.imsave(os.path.join(prefix,f'input{c}_white_frame.png'),max_frame.astype(np.uint8))
+            print(max_frame.shape)
+            max_frame = max_frame[i0r:i1r,j0r:j1r]
+            print(max_frame.shape)
+        else:
+            calibration_c["cropbox_rescaled"] = ""
+        wf_avg_preview = os.path.join(output_dir,f'camera{c+1}_average_cropped_scaled_white_frame.png')
+        calibration_c["white_frame_average"] = f'camera{c+1}_average_cropped_scaled_white_frame.png'
+        imgio.imsave(wf_avg_preview,max_frame.astype(np.uint8))
         means = (mean_red/num_valid,mean_green/num_valid,mean_blue/num_valid)
-        np.savetxt(os.path.join(prefix,f'input{c}_white_balance.txt'),means,fmt='%8.4f')
+        calibration_c["white_balance"] = {"red":means[0],"green":means[1],"blue":means[2]}
         print(f"mean white frame color:",means)
         #
         # compute illumination curve as a second order curve from the non-saturated pixels
         #
-        # we build a regression problem of the form (1,r,w,r^2,r*w,w^2) -> L
+        # we build a regression problem of the form (1,r,c,r^2,r*c,c^2) -> L
+        # using as r and c the _unscaled_ and _uncropped_ row and column indexes
         # 
-        ri = np.arange(max_frame.shape[0])
-        ci = np.arange(max_frame.shape[1])
+        ri = np.arange(i0r,i1r)/hr
+        ci = np.arange(j0r,j1r)/wr
+        print(ri)
+        print(ci)
         Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
         Ri = Ri.ravel()
         Ci = Ci.ravel()
         L = max_frame.ravel()
+        max_frame[max_frame == 255]  = 0
+        print(L)
         VP = np.flatnonzero(L < 255)
         L = L[VP]
         Ri = Ri[VP]
@@ -191,26 +211,46 @@ def do_white(annotations,args):
         X[:,4] = Ri*Ci
         X[:,5] = Ci**2
         print(X.shape,L.shape)
-        a,rss,rank,sval = np.linalg.lstsq(X,L)
+        a,rss,rank,sval = np.linalg.lstsq(X,L,rcond=None)
         print(a)
+        calibration_c["white_frame_parameters"] = a.tolist()
         #
         # compute approximated white frame 
-        #        
-        ri = np.arange(max_frame.shape[0])
-        ci = np.arange(max_frame.shape[1])
+        #
+        # DEBUG
+        ri = np.arange(i0r,i1r)/hr
+        ci = np.arange(j0r,j1r)/wr
         Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
         white_frame = a[0] + a[1]*Ri + a[2]*Ci + a[3]*(Ri**2) + a[4]*(Ri*Ci) + a[5]*(Ci**2)
-        np.save(os.path.join(prefix,f'input{c}_white_frame_par.npy'),white_frame)
+        white_frame = np.maximum(0,np.minimum(255,white_frame)).astype(np.uint8)
+        wf_image_fname = os.path.join(output_dir,f'camera{c+1}_white_frame_par_test.png')
+        imgio.imsave(wf_image_fname,white_frame)
+        plt.figure()
+        plt.imshow(white_frame)
+        plt.show()
+        # end debug
+
+        ri = np.arange(h0)/h0
+        ci = np.arange(w0)/w0
+        Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
+        white_frame = a[0] + a[1]*Ri + a[2]*Ci + a[3]*(Ri**2) + a[4]*(Ri*Ci) + a[5]*(Ci**2)
+        wf_matrix_fname = os.path.join(output_dir,f'camera{c+1}_white_frame_par.npy')
+        np.save(wf_matrix_fname,white_frame)
+        calibration_c["white_frame_matrix"] = f'camera{c+1}_white_frame_par.npy'
         # very likely, the computed parametric white frame falls out of the valid range if there were many saturated
         # pixels, so we downscale the output image. We will use the saved matrix (npy), not this, for normalization
         white_frame = (white_frame*(255/np.max(white_frame))).astype(np.uint8)
-        imgio.imsave(os.path.join(prefix,f'input{c}_white_frame_par.png'),white_frame)
+        wf_image_fname = os.path.join(output_dir,f'camera{c+1}_white_frame_par.png')
+        imgio.imsave(wf_image_fname,white_frame)
+        calibration_c["white_frame_parametric_image"] = f'camera{c+1}_white_frame_par.png'
+        calibration[camera_c_key] = calibration_c
+    return calibration
 
-def do_calib(annotations,args):
+def do_calib(annotations,args,calibration):
     #calib_info = [None,None]
     #for c in range(ncam):
     #    calib_info[c] = calibrate_single_camera(cap[c],annotations,args)
-    pass
+    return calibration
 
 
 if __name__ == "__main__":
@@ -237,14 +277,19 @@ if __name__ == "__main__":
     with open(json_fname,"r") as f:
         annotations = json.loads(f.read())
         print(json.dumps(annotations,indent="    "))
-    
-        prefix  = args["output"]
+        output_info = dict()
+        output_info        
+        output_dir  = args["output"]
+        if output_dir is None:
+            base_fname,_ = os.path.splitext(json_fname)
+            output_dir = base_fname+".calib"
+        print("output_dir",output_dir)
         # white frame
         ini_white = annotations["ini_white_frame"]
         end_white = annotations["fin_white_frame"]    
         if ini_white * end_white >= 0:
             print(f"Computing white frame using frames from {ini_white} to {end_white}")
-            do_white(annotations,args)
+            calibration = do_white(annotations,args, output_dir)
         else:
             print("No white frame will be computed.")
 
@@ -252,7 +297,14 @@ if __name__ == "__main__":
         end_calib = annotations["fin_calib_frame"]
         if ini_calib * end_calib >= 0:
             print(f"Computing 3D calibration  using frames from {ini_calib} to {end_calib}")
-            do_calib(annotations,args)
+            calibration = do_calib(annotations,args, calibration)
         else:
             print("No white frame will be computed.")
+
+        
+        calibration_file = os.path.join(output_dir,"calibration.json")
+        txt = json.dumps(calibration,indent=4)
+        print("CALIBRATION:",txt)
+        with open(calibration_file,"w") as f:
+            f.write(txt)
 

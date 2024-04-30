@@ -62,51 +62,60 @@ def fast_rot(img,rot):
 def extract(annotations,calibration,args):
 
     input_fname = [None,None]
-    input_a = annotations["input_a"]
+    camera_a = annotations["camera_a"]
     take = annotations["take"]
     res_fac = args["rescale_factor"]
-    input_fname[0] = os.path.join(basedir,f'{input_a}/{input_a}_toma{take}_parte1.mp4')
-    prefix = args["output"]
-    if annotations["input_b"]:
-        input_b = annotations["input_b"]
-        input_fname[1] = os.path.join(basedir,f'{input_b}/{input_b}_toma{take}_parte1.mp4')
-        if prefix is None:
-            prefix  = os.path.join(args["basedir"],f'{input_a}+{input_b}.calib')
+    skip = args["skip"]
+    basedir = args["basedir"]
+    input_fname[0] = os.path.join(basedir,f'{camera_a}/{camera_a}_toma{take}_parte1.mp4')
+    output_dir = args["output"]
+    annotation_file = args["annotation"]
+    calibration_dir,_ = os.path.splitext(annotation_file) 
+    calibration_dir = calibration_dir + ".calib"
+    if annotations["camera_b"]:
+        camera_b = annotations["camera_b"]
+        input_fname[1] = os.path.join(basedir,f'{camera_b}/{camera_b}_toma{take}_parte1.mp4')
+        if output_dir is None:
+            output_dir  = os.path.join(args["basedir"],f'{camera_a}+{camera_b}.output')
         ncam = 2
     else:
-        if prefix is None:
-            prefix  = os.path.join(args["basedir"],f'{input_a}.calib')
+        if output_dir is None:
+            output_dir  = os.path.join(args["basedir"],f'{camera_a}.output')
         ncam = 1
     rot = [ annotations["rot1"], annotations["rot2"]]
-    if not os.path.exists(prefix):
-        os.makedirs(prefix,exist_ok=True)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir,exist_ok=True)
 
+    print("extracting frames to output directory:",output_dir)
+    print("skipping every ",skip,"frames","reduced by a factor of ",res_fac)
     offset = compute_offsets(annotations)
     cropbox = annotations["crop_box"]
     # white frame
-    ini_white = annotations["ini_white_frame"]
-    end_white = annotations["fin_white_frame"]
-    n_white = end_white - ini_white
-    #n_white = 20 # DEBUG
+    ini_data = annotations["ini_data_frame"]
+    if ini_data < 0:
+        ini_data = 0
+    end_data = annotations["fin_data_frame"]
+    if end_data < 0:
+        end_data = skip*100
+    n_data = end_data - ini_data
     fps = [None,None]
     cap = [None,None]
     for c in range(ncam):
+        camera = f"camera{c+1}"
         print(f"camera {c}:")
+        white_balance = calibration[camera]["white_balance"]
         cap[c] = cv2.VideoCapture(input_fname[c])
-        cap[c].set(cv2.CAP_PROP_POS_FRAMES, offset[c]+ini_white)
+        cap[c].set(cv2.CAP_PROP_POS_FRAMES, offset[c]+ini_data)
         fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
         print("\tframes per second: ",fps[c])
         print("\trotation:",rot[c])
 
         # Loop until the end of the video
         frame = None
+        white_frame = None
         n = 0
         t0 = time.time()
-        mean_red = 0
-        mean_green = 0
-        mean_blue = 0
-        num_valid = 0
-        while (cap[c].isOpened()) and n < n_white: # ----- loop over frames
+        while (cap[c].isOpened()) and n < n_data: # ----- loop over frames
             # Capture frame-by-frame
             if frame is None:
                 ret, frame = cap[c].read()
@@ -114,18 +123,32 @@ def extract(annotations,calibration,args):
                 ret, frame = cap[c].read(frame)
             if not ret:
                 break
-            h,w,ch = frame.shape
-            #color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
-            color_frame = np.flip(np.array(color_frame),axis=2)
-            h,w,ch = color_frame.shape
-            color_frame = fast_rot(color_frame,-rot[c])
-
-            #if not n % 30:
-            #    _fps = n/(time.time()-t0)
-            #    imgio.imsave(os.path.join(prefix,f'input_{c}_white_{n+ini_white:05d}.jpg'),color_frame)
-            #    print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')
-
             n += 1
+            frame_name = f'camera{c+1}_frame_{ini_data+n:05d}'
+            if n % skip:
+                continue
+            h,w,ch = frame.shape
+            color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
+
+            color_frame = np.flip(np.array(color_frame),axis=2)            
+            color_frame = fast_rot(color_frame,-rot[c])
+            imgio.imsave(os.path.join(output_dir,frame_name+'_before.jpg'),color_frame)
+            color_frame = color_frame.astype(float)
+            if white_frame is None:
+                white_frame = np.load(os.path.join(calibration_dir,calibration[camera]["white_frame_matrix"]))
+                hw,ww = white_frame.shape
+                white_frame = trans.resize(white_frame,(hw//res_fac,ww//res_fac))*(1/255)
+            print('wf',np.min(white_frame),np.max(white_frame))
+            h,w,ch = color_frame.shape
+            print('cf before',np.min(color_frame),np.max(color_frame))
+            color_frame[:,:,0] = (color_frame[:,:,0]/white_frame)*(255/white_balance["red"]) # both white balance and white frame are 0-255
+            color_frame[:,:,1] = (color_frame[:,:,1]/white_frame)*(255/white_balance["green"])
+            color_frame[:,:,2] = (color_frame[:,:,2]/white_frame)*(255/white_balance["blue"])            
+            print('cf after',np.min(color_frame),np.max(color_frame))
+            color_frame = np.maximum(0,np.minimum(255,color_frame)).astype(np.uint8)
+            imgio.imsave(os.path.join(output_dir,frame_name+'_after.jpg'),color_frame)
+            _fps = (n+1)/(time.time()-t0)
+            print(f'frame {n+ini_data:05d}  fps {_fps:7.1f}')
             # ------------------- end loop over frames
 
         # release the video capture object
@@ -138,24 +161,31 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument('-r',"--rescale-factor", type=int, default=8,
-                    help="Reduce resolution this many times (defaults to 8 -- brutal). ")
+    ap.add_argument('-r',"--rescale-factor", type=int, default=4,
+                    help="Reduce output this many times (defaults to 4). ")
+    ap.add_argument('-s',"--skip", type=int, default=10,
+                    help="Output every this number of frames (defaults to 10). ")
     ap.add_argument('-D',"--basedir", type=str, default=".",
                     help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=str, required=True,
-                    help="Calibration JSON file produced by annotate. ")
+                    help="Calibration info JSON file produced by annotate. ")
+    ap.add_argument('-c',"--calibration", type=str, default=None,
+                    help="Directory where calibration results were stored. Defaults to annotations file name with .calib suffix. ")
     ap.add_argument('-o',"--output", type=str, default=None,
-                    help="Output prefix for data produced by this function. This is appended to basedir.")
-    ap.add_argument('-m',"--method", type=str, default="max",
-                    help="Method for computing the white frame. May be average,max,or an integer for the percentile (much slower).")
+                    help="Output directory for data produced by this function. This is appended to basedir. Default is the name of the annotations file with a .output prefix")
     args = vars(ap.parse_args())
 
-    json_fname = args["annotation"]
+    annotations_json_fname = args["annotation"]    
     basedir = args["basedir"]
-
-    with open(json_fname,"r") as f:
-        annotations = json.loads(f.read())
-        print(json.dumps(annotations,indent="    "))
-        calibration = None
-        extract(annotations,calibration,args)
+    if args["calibration"] is None:
+        annotations_base_fname,_ = os.path.splitext(annotations_json_fname)
+        calibration_basedir = os.path.join(annotations_base_fname+".calib")
+        calibration_json_fname = os.path.join(calibration_basedir,"calibration.json")
+    with open(annotations_json_fname,"r") as fa:
+        with open(calibration_json_fname,'r') as fc:
+            annotations = json.loads(fa.read())
+            calibration = json.loads(fc.read())
+            print("annotations:",json.dumps(annotations,indent="  "))
+            print("calibration:",json.dumps(annotations,indent="    "))
+            extract(annotations,calibration,args)
 
