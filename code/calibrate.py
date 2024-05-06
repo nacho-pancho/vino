@@ -125,7 +125,6 @@ def do_white(annotations,args,output_dir):
         frame = None
         n = 0
         t0 = time.time()
-        print(ini_white)    
         mean_red = 0
         mean_green = 0
         mean_blue = 0
@@ -170,9 +169,7 @@ def do_white(annotations,args,output_dir):
         cap[c].release()
         if cropbox is not None:
             # cropbox is top left bottom right
-            print(max_frame.shape)
             max_frame = max_frame[i0r:i1r,j0r:j1r]
-            print(max_frame.shape)
         else:
             calibration_c["cropbox_rescaled"] = ""
         wf_avg_preview = os.path.join(output_dir,f'camera{c+1}_average_cropped_scaled_white_frame.png')
@@ -189,8 +186,6 @@ def do_white(annotations,args,output_dir):
         # 
         ri = np.arange(i0r,i1r)/hr
         ci = np.arange(j0r,j1r)/wr
-        print(ri)
-        print(ci)
         Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
         Ri = Ri.ravel()
         Ci = Ci.ravel()
@@ -208,7 +203,6 @@ def do_white(annotations,args,output_dir):
         X[:,3] = Ri**2
         X[:,4] = Ri*Ci
         X[:,5] = Ci**2
-        print(X.shape,L.shape)
         a,rss,rank,sval = np.linalg.lstsq(X,L,rcond=None)
         calibration_c["white_frame_parameters"] = a.tolist()
         #
@@ -296,7 +290,7 @@ if __name__ == "__main__":
             print(f"Computing 3D calibration  using frames from {ini_calib} to {end_calib}")
             calibration = do_calib(annotations,args, calibration)
         else:
-            print("No white frame will be computed.")
+            print("No calibration  will be computed.")
 
         
         calibration_file = os.path.join(output_dir,"calibration.json")

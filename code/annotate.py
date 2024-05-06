@@ -113,6 +113,8 @@ class VidUI():
         self.annotations = {
             "camera_a":args["camera_a"],
             "camera_b":args["camera_b"],
+            "take":args["toma"],
+            "part":args["parte"],
             "ini_calib_frame":-1,
             "fin_calib_frame":-1,
             "ini_white_frame":-1,
