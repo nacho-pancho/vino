@@ -119,8 +119,6 @@ class VidUI():
             "fin_calib_frame":-1,
             "ini_white_frame":-1,
             "fin_white_frame":-1,
-            "ini_data_frame":-1,
-            "fin_data_frame":-1,
             "sync_1_frame":-1,
             "sync_2_frame":-1,
             "crop_box": [0,self.frame_height,0,self.frame_width],
@@ -362,9 +360,6 @@ class VidUI():
                 self.canvas.create_text(20+C*W,yoff,text="INI WHITE",font=normal_font, anchor=tk.NW,fill="#8f0")
             if self.annotations["fin_white_frame"] == self.frame_idx:
                 self.canvas.create_text(20+C*W,yoff,text="END WHITE",font=normal_font, anchor=tk.NW,fill="#f80")
-            yoff += LINE_SPACING
-            if self.annotations["ini_data_frame"] <= self.frame_idx and self.frame_idx <= self.annotations["fin_data_frame"]:
-                self.canvas.create_text(20+C*W,yoff,text="DATA",font=normal_font, anchor=tk.NW,fill="#f8f")
             yoff += LINE_SPACING
 
             if self.annotations[f"sync_{C+1}_frame"] == self.frame_idx:

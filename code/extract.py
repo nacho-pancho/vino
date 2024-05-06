@@ -91,10 +91,10 @@ def extract(annotations,calibration,args):
     offset = compute_offsets(annotations)
     cropbox = annotations["crop_box"]
     # white frame
-    ini_data = annotations["ini_data_frame"]
+    ini_data = args["ini_data_frame"]
     if ini_data < 0:
         ini_data = 0
-    end_data = annotations["fin_data_frame"]
+    end_data = args["fin_data_frame"]
     if end_data < 0:
         end_data = skip*100
     n_data = end_data - ini_data
@@ -131,7 +131,7 @@ def extract(annotations,calibration,args):
             color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
 
             color_frame = np.flip(np.array(color_frame),axis=2)            
-            color_frame = fast_rot(color_frame,-rot[c])
+            color_frame = fast_rot(color_frame,rot[c])
             #imgio.imsave(os.path.join(output_dir,frame_name+'_before.jpg'),color_frame)
             color_frame = color_frame.astype(float)
             if white_frame is None:
@@ -160,6 +160,10 @@ if __name__ == "__main__":
     #
     ap.add_argument('-r',"--rescale-factor", type=int, default=4,
                     help="Reduce output this many times (defaults to 4). ")
+    ap.add_argument('-i',"--ini-data-frame", type=int, required=True,
+                    help="First data frame to extract. ")
+    ap.add_argument('-f',"--fin-data-frame", type=int, required=True,
+                    help="First data frame to extract. ")
     ap.add_argument('-s',"--skip", type=int, default=5,
                     help="Output every this number of frames (defaults to 5). ")
     ap.add_argument('-D',"--basedir", type=str, default=".",
