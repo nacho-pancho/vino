@@ -92,11 +92,10 @@ def gather_calibration_data(annotations,args):
             gray = gray.astype(np.uint8)
             frame_name = f'camera{c+1}_calib_{frame_index:07d}.jpg'
             frame_full_path = os.path.join(output_dir,frame_name)
-            #print("saving calibration frame to ",frame_full_path)
             imgio.imsave(frame_full_path,gray,quality=90)
 
             # Find the chess board corners
-            ret, centers = cv2.findCirclesGrid(gray, (M,N),flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
+            ret, centers = cv2.findCirclesGrid(gray, (M,N), flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
             # If found, add object points, image points (after refining them)
             print(ret,len(centers))
             if ret == True:
@@ -114,9 +113,8 @@ def gather_calibration_data(annotations,args):
             for ce in centers:
                 ce = np.squeeze(ce).astype(int)
                 gray[ce[1]-2:ce[1]+2,ce[0]-2:ce[0]+2] = 255
-            print(np.max(gray)) 
             debug_frame_name = f'camera{c+1}_debug_{frame_index:07d}.jpg'
-            debug_frame_full_path = os.path.join(output_dir,frame_name)
+            debug_frame_full_path = os.path.join(output_dir,debug_frame_name)
             imgio.imsave(debug_frame_full_path,gray,quality=90)
             frame_index += 1
             print(f"got {good_frames} out of {final_frame-ini_frame} frames.")
@@ -151,11 +149,11 @@ if __name__ == "__main__":
                     help="output directory. Defaults to the same name as the annotation file with .calib instead of .json as suffix.")
     ap.add_argument('-p',"--pattern", type=str, default="circles",
                     help="Type of calibration pattern. May be chessboard or circles.")
-    ap.add_argument('-M',"--nrows", type=int, default=6,
+    ap.add_argument('-M',"--nrows", type=int, default=5,
                     help="Number of rows in pattern.")
     ap.add_argument('-N',"--ncols", type=int, default=4,
                     help="Number of columns in pattern.")
-    ap.add_argument('-r',"--rotate", action="store_true",
+    ap.add_argument('-r',"--rotate", default=90,
                     help="Save debugging info (frames).")
     ap.add_argument('-L',"--pattern-size", type=float, default=1,
                     help="Size of patterns in real world (in your units of preference, doesn't matter).")
@@ -172,8 +170,6 @@ if __name__ == "__main__":
         # grab and store calibration frames
         #
         frame_size, obj_points, img_points = gather_calibration_data(annotations,args)
-        
-
         #
         # calibrating
         #
@@ -183,16 +179,13 @@ if __name__ == "__main__":
         rvecs = np.squeeze(np.array(rvecs))
         tvecs = np.squeeze(np.array(tvecs))
         dist = np.squeeze(dist)
-
         #
         # refining model
         #
         alpha = args["alpha"]
         print('Refining calibration')
         newcameramtx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, frame_size, alpha, frame_size)
-        #print('newcameramtx')
-        #print('roi',roi)
-        #np.savetxt(os.path.join(outdir,'calibration_rmse.txt'),ret,fmt='10.6f')
+
         print('Saving results')
         input_dir=os.path.join(args["datadir"],args["adqdir"])
         output_dir=args["outdir"]
