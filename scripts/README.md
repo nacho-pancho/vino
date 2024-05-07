@@ -1,5 +1,8 @@
 # Preprocesamiento y extracción de frames
 
+* Autor: Ignacio Ramírez <nacho@fing.edu.uy>
+* Fecha: 6 de mayo de 2024
+
 ## Propósito
 
 Los videos capturados con las GoPro deben ser calibrados por tres motivos principales:
@@ -83,12 +86,22 @@ La calibración calcula cuantro cosas (si todo se especifica):
 * el blanco medio de la cámara, para ajustar el balance global de blancos; para eso se usa el promedio de los pixeles _no saturados_ de los frames seleccionados en la anotación entre `ini_white` y `fin_white`.
 * la curva media de iluminación. Los focos producen una luz no uniforme sobre las uvas y eso hay que corregirlo. Para eso se expone una plancha blanca frente a cada par de cámaras, más o menos a la distancia que aparecen las uvas, durante cierto tiempo, de modo que cubra todo el frame (idealmente). Los pixeles _no saturados_  de estos frames se promedian y se utilizan para ajustar un polinomio de segundo grado. Hay que tener mucho cuidado de que no queden zonas oscuras/no cubiertas en los frames de calbiración de blancos. Para evitar esto tenemos el `crobpox` que se define dibujando en el programa de anotación.
 
-* 
-code/calibrate.py -D data/$1 -a data/$1/gopro1+gopro2_toma1.json
-#
-# finalmente, con la información de calibración, el archivo de anotaciones, un frame inicial y uno final (especificados por -i y -f)
-# se extraen frames (por defecto cada 5) como archivos jpeg bajo una carpeta con el mismo nombre que el archivo de anotaciones pero extension
-# .output.
-# siguiendo con el ejemplo, seria data/2024-03-18-vino_fino/gopro1+gopro2.output/
-#
-code/extract.py -D data/$1 -a data/$1/gopro1+gopro2_toma1.json -i 2365 -f 10000
+#### Invocación:
+
+Siguiendo con el ejemplo de que los datos están en una ruta relativa a la raíz de este proyecto (en donde se encuentra este README.md), la calibración se realiza de la siguiente manera:
+
+```
+code/calibrate.py -D data -A 2024-03-18-vino_comun -a data/2024-03-04-vino_fino/gopro1+gopro2_toma1.json
+```
+
+### Extracción
+
+Finalmente, con la información de calibración, el archivo de anotaciones, un frame inicial y uno final especificados por los parámetros `-i` y `-f`, y un paso de avance (skip) entre frame y frame a adquirir (parámetro `-s`, por defecto de valor 5), se extraen frames y se almacenan  como archivos jpeg bajo una carpeta con el mismo nombre que el archivo de anotaciones pero extension `.output`. Siguiendo con el ejemplo, seria `data/2024-03-18-vino_fino/gopro1+gopro2.output/`
+
+#### Invocación mínima
+
+De nuevo con el ejemplo anterior, la linea de comandos mínima (sin parámetros opcionales), sería algo así:
+````
+code/extract.py -D data -A 2024-03-04-vino_fino -a data/$1/gopro1+gopro2_toma1.json -i 2365 -f 10000
+```
+

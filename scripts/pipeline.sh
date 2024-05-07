@@ -24,11 +24,11 @@ code/annotate.py -D data -A $1 -a gopro1 -b gopro2 -r 90 -s 90
 # estos son guardados en una carpeta con mismo nombre que el json generado con annotate pero con terminación '.calib'
 # siguiendo el ejemplo anterior, seria data/2024-03-18-vino_fino/gopro1+gopro2.calib
 #
-code/calibrate.py -D data/$1 -a data/$1/gopro1+gopro2_toma1.json
+code/calibrate.py -D data -A $1 -a data/$1/gopro1+gopro2_toma1.json
 #
 # finalmente, con la información de calibración, el archivo de anotaciones, un frame inicial y uno final (especificados por -i y -f)
 # se extraen frames (por defecto cada 5) como archivos jpeg bajo una carpeta con el mismo nombre que el archivo de anotaciones pero extension
 # .output.
 # siguiendo con el ejemplo, seria data/2024-03-18-vino_fino/gopro1+gopro2.output/
 #
-code/extract.py -D data/$1 -a data/$1/gopro1+gopro2_toma1.json -i 1000 -f 4000
+code/extract.py -D data -A $1 -a data/$1/gopro1+gopro2_toma1.json -i 1000 -f 4000

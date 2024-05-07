@@ -69,6 +69,7 @@ def do_white(annotations,args,output_dir):
     camera_a = annotations["camera_a"]
     take = annotations["take"]
     res_fac = args["rescale_factor"]
+    basedir = os.path.join(args["datadir"],args["adqdir"])
     input_fname[0] = os.path.join(basedir,f'{camera_a}/{camera_a}_toma{take}_parte1.mp4')
     calibration["camera1"] = {"input_fname":input_fname[0]} 
     if annotations["camera_b"]:
@@ -250,10 +251,12 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
+    ap.add_argument("-D","--datadir",type=str,required=True,help="directorio donde se encuentran todos los datos.")
+    ap.add_argument("-A","--adqdir", type=str, required=True,
+                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
+
     ap.add_argument('-r',"--rescale-factor", type=int, default=8,
                     help="Reduce resolution this many times (defaults to 8 -- brutal). ")
-    ap.add_argument('-D',"--basedir", type=str, default=".",
-                    help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=str, required=True,
                     help="Calibration JSON file produced by annotate. ")
     ap.add_argument('-o',"--output", type=str, default=None,
@@ -263,7 +266,6 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     json_fname = args["annotation"]
-    basedir = args["basedir"]
 
     with open(json_fname,"r") as f:
         annotations = json.loads(f.read())

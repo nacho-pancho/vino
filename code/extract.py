@@ -66,7 +66,7 @@ def extract(annotations,calibration,args):
     take = annotations["take"]
     res_fac = args["rescale_factor"]
     skip = args["skip"]
-    basedir = args["basedir"]
+    basedir = os.path.join(args["datadir"],args["adqdir"])
     input_fname[0] = os.path.join(basedir,f'{camera_a}/{camera_a}_toma{take}_parte1.mp4')
     output_dir = args["output"]
     annotation_file = args["annotation"]
@@ -158,6 +158,10 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
+    ap.add_argument("-D","--datadir",type=str,required=True,help="directorio donde se encuentran todos los datos.")
+    ap.add_argument("-A","--adqdir", type=str, required=True,
+                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
+
     ap.add_argument('-r',"--rescale-factor", type=int, default=4,
                     help="Reduce output this many times (defaults to 4). ")
     ap.add_argument('-i',"--ini-data-frame", type=int, required=True,
@@ -166,8 +170,6 @@ if __name__ == "__main__":
                     help="First data frame to extract. ")
     ap.add_argument('-s',"--skip", type=int, default=5,
                     help="Output every this number of frames (defaults to 5). ")
-    ap.add_argument('-D',"--basedir", type=str, default=".",
-                    help="Base directory. Everything else is relative to this one. ")
     ap.add_argument('-a',"--annotation", type=str, required=True,
                     help="Calibration info JSON file produced by annotate. ")
     ap.add_argument('-c',"--calibration", type=str, default=None,
@@ -177,7 +179,6 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     annotations_json_fname = args["annotation"]    
-    basedir = args["basedir"]
     if args["calibration"] is None:
         annotations_base_fname,_ = os.path.splitext(annotations_json_fname)
         calibration_basedir = os.path.join(annotations_base_fname+".calib")
