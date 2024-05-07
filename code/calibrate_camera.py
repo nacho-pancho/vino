@@ -96,20 +96,28 @@ def gather_calibration_data(annotations,args):
             imgio.imsave(frame_full_path,gray,quality=90)
 
             # Find the chess board corners
-            ret, corners = cv2.findCirclesGrid(gray, (M,N), None)
+            ret, centers = cv2.findCirclesGrid(gray, (M,N),flags=cv2.CALIB_CB_ASYMMETRIC_GRID)
             # If found, add object points, image points (after refining them)
-            print(ret,corners)
+            print(ret,len(centers))
             if ret == True:
                 objpoints_c.append(objp)
-                criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, args["maxiter"], args["epsilon"])
-                corners2 = cv2.cornerSubPix(gray,corners, (window_size,window_size), (-1,-1), criteria)
-                imgpoints_c.append(corners2)
+                #criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, args["maxiter"], args["epsilon"])
+                #corners2 = cv2.cornerSubPix(gray,centers, (window_size,window_size), (-1,-1), criteria)
+                centers2 = centers
+                imgpoints_c.append(centers2)
                 good_frames += 1
                 print('OK!')
             else:
                 print('Pattern not found in frame ',frame_index)
                 objpoints_c.append(None)
                 imgpoints_c.append(None)
+            for ce in centers:
+                ce = np.squeeze(ce).astype(int)
+                gray[ce[1]-2:ce[1]+2,ce[0]-2:ce[0]+2] = 255
+            print(np.max(gray)) 
+            debug_frame_name = f'camera{c+1}_debug_{frame_index:07d}.jpg'
+            debug_frame_full_path = os.path.join(output_dir,frame_name)
+            imgio.imsave(debug_frame_full_path,gray,quality=90)
             frame_index += 1
             print(f"got {good_frames} out of {final_frame-ini_frame} frames.")
             # end while: go over calibration frames for current camera
