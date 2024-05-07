@@ -1,0 +1,49 @@
+import numpy as np
+import skimage.transform as trans
+def compute_offsets(annotations):
+    sync_1 = annotations["sync_1_frame"]
+    sync_2 = annotations["sync_2_frame"]
+
+    if sync_1 < 0:
+        sync_1 = 0
+        print("WARNING: Assuming sync frame 1 is 0 (does not seem right but...)")
+
+    if sync_2 < 0:
+        sync_2 = 0
+        print("WARNING: Assuming sync frame 2 is 0 (does not seem right but...)")
+
+    if sync_1 == 0 and sync_2 == 0:
+        print("WARNING: both sync frames are 0. Did you really annotate this?")
+    
+    if sync_1 < sync_2:
+        # marker appeared in an earlier frame in camera 1 => it started AFTER camera 2
+        # so we discard sync_1 - sync_2 frames from camera 2 to put them in sync
+        offset = [0,sync_2 - sync_1]
+    else:
+        # vice versa
+        offset = [sync_1 - sync_2,0]
+    print(f"Frame offsets: input 1 {offset[0]} input 2 {offset[1]}")
+    return offset
+
+
+
+def generate_annotations_filename(camera_a,camera_b,toma):
+    if camera_b is not None:
+        return f"{camera_a}+{camera_b}_toma{toma}.json"
+    else:
+        return f"{camera_a}_toma{toma}.json"
+        
+
+def fast_rot(img,rot):
+    if rot < 0:
+        rot += 360
+    if rot == 0:
+        return img
+    elif rot == 90:
+        return np.transpose(np.flip(img,axis=0),(1,0,2))
+    elif rot == 270:
+        return np.flip(np.transpose(img,(1,0,2)),axis=0)
+    elif rot == 180:
+        return np.flip(np.flip(img,axis=0),axis=1)
+    else:
+        return (255*trans.rotate(img,rot,resize=True)).astype(np.uint8) # rotation scales colors to 0-1!!

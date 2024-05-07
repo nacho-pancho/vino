@@ -25,6 +25,7 @@ from PIL import Image, ImageTk
 import json
 import os
 from tkinter import font as tkfont
+from vutils import *
 
 LINE_SPACING = 30
 FONT_SIZE = 20
@@ -37,7 +38,12 @@ class VidUI():
         super().__init__()
         rot1 = args["rotation1"]
         rot2 = args["rotation2"]
-        json_fname = args["json_file"]        
+        camera_a = args["camera_a"]
+        camera_b = args["camera_b"]
+        toma = args["take"]
+        adq_dir = args["adqdir"]
+        rel_json_fname = generate_annotations_filename(camera_a,camera_b,toma)
+        json_fname = os.path.join(adq_dir,rel_json_fname)
         self.root = tk.Tk()
         self.style = ttk.Style(self.root)
         self.json_fname = json_fname
@@ -383,8 +389,6 @@ if __name__ == "__main__":
                     help="número de parte (en gral. para calibrar usamos siempre la 1)")
     ap.add_argument("-A","--adqdir", type=str, required=True,
                     help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
-    ap.add_argument("-o","--json-file", type=str, default=None,
-                    help="Nombre de archivo de JSON con anotaciones. Si no se especifica se genera en base al resto de los parametros.")
     ap.add_argument("-r","--rotation1", type=int, default=0,
                     help="rotation of first input.")
     ap.add_argument("-s","--rotation2", type=int, default=0,
@@ -420,18 +424,7 @@ if __name__ == "__main__":
             print(f"Error al abrir archivo de video {toma_b_path}")
             exit(1)
 
-    if args["json_file"] is None:
-        #
-        # asumimos estructura goproN/goproN_tomaM.mp4 para input y de ahi sacamos raiz
-        #
-        if camera_b is not None:
-            json_path = os.path.join(adq_path,f"{camera_a}+{camera_b}_toma{toma}.json")
-        else:
-            json_path = os.path.join(adq_path,f"{camera_a}_toma{toma}.json")
-    else:
-        json_path = args["json_file"]
-    args["json_file"] = json_path
-    print("json file:",json_path)
+
     gui  = VidUI(cap[0],cap[1],args)
     
     if cap[0]:

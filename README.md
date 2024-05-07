@@ -14,7 +14,7 @@ con el patrón de calibración que generamos para tal ocasión.
 
 El sistema se divide en tres etapas:
 * anotación (`annotate.py`): esta es una interfaz gráfica muy rústica en donde uno especifica los valores anteriores
-* calibración (`calibrate.py`): este programa toma el archivo de anotaciones JSON generado por `annotate.py` y calcula parámetros que luego serán aplicados en la calibración
+* calibración de iluminacion (`calibrate_light.py`): este programa toma el archivo de anotaciones JSON generado por `annotate.py` y calcula parámetros que luego serán aplicados en la calibración
 * extracción (`extract.py`): junto con la info de calibración, las anotaciones, y la especificación de un período inicial y final de captura (frames de inicio y fin), una escala (por defecto se reducen los frames a 1/4 de su resolución original) y una tasa de submuestreo de frames (por defecto se toma 1 de cada 5 frames), este programa genera una secuencia de archivos jpeg de alta calidad cuyo nombre es camaraX_NNNNN.jpg, donde X es la camara (1 o 2) y NNNNN es el numero de frame _luego_ de la calibración de tiempo.
 
 ### Nota sobre la calibración de tiempo
@@ -86,23 +86,84 @@ En la barra izquierda se encuentran pares de botones para hacer distintas anotac
 
 Al lado de cada botón de anotación hay otro pequeño que dice 'Go'. Este sirve para ir directamente al frame indicado por el botón correspondiente a su izquierda, por si fuera necesario verificar algo (por ej, el tiempo en el cronómetro.)
 
-### Calibración
+### Calibración de luz
 
 
-La calibración toma el archivo generado por `annotate.py` y la carpeta en donde se encuentran los datos (con la misma convención que `annotate.py`) y calcula cuantro cosas (según estén definidas las marcas correspondientes; de otra forma ignora el aspecto correspondiente de la calibración.), Dicho lo anterior, el balane de blancos es lo mínimo que debería anotarse para que todo este pipeline tenga sentido:
-* el blanco medio de la cámara, para ajustar el balance global de blancos; para eso se usa el promedio de los pixeles _no saturados_ de los frames seleccionados en la anotación entre `ini_white` y `fin_white`.
+La calibración de luz, implementada en `calibrate_light.py`, toma el archivo generado por `annotate.py` y la carpeta en donde se encuentran los datos (con la misma convención que `annotate.py`) y calcula:
+* el blanco medio de la cámara, para ajustar el balance global de blancos; para eso se usa el promedio de los pixeles _no saturados_ de los frames seleccionados en la anotación entre `ini_white_frame` y `fin_white_frame`.
 * la curva media de iluminación. Los focos producen una luz no uniforme sobre las uvas y eso hay que corregirlo. Para eso se expone una plancha blanca frente a cada par de cámaras, más o menos a la distancia que aparecen las uvas, durante cierto tiempo, de modo que cubra todo el frame (idealmente). Los pixeles _no saturados_  de estos frames se promedian y se utilizan para ajustar un polinomio de segundo grado. Hay que tener mucho cuidado de que no queden zonas oscuras/no cubiertas en los frames de calbiración de blancos. Para evitar esto tenemos el `crobpox` que se define dibujando en el programa de anotación.
-* los parámetros intrínsecos de cada cámara en base a los frames de calibración entre `ini_calib` y `fin_calib`
-* los parámetros y la matriz fundamental del par 3D a partir de los datos de calibración. 
 
 La invocación del programa es la siguiente:
+
 ```
-code/calibrate.py -D data/$1 -a data/$1/gopro1+gopro2_toma1.json
+code/calibrate_light.py -D data -A 2024-03-18-vino_comun
 ```
-#
-# finalmente, con la información de calibración, el archivo de anotaciones, un frame inicial y uno final (especificados por -i y -f)
-# se extraen frames (por defecto cada 5) como archivos jpeg bajo una carpeta con el mismo nombre que el archivo de anotaciones pero extension
-# .output.
-# siguiendo con el ejemplo, seria data/2024-03-18-vino_fino/gopro1+gopro2.output/
-#
-code/extract.py -D data/$1 -a data/$1/gopro1+gopro2_toma1.json -i 2365 -f 10000
+
+La ubicación del JSON no se da relativa
+
+### Calibración de parámetros intrínsecos de las cámaras
+
+Esta rutina calcula los parámetros intrínsecos de cada cámara en base a los frames de calibración entre `ini_calib_frame` y `fin_calib_frame`.
+
+```
+code/calibrate_camera.py -D data -A 2024-03-18-vino_comun
+```
+
+
+### Calibración de par stereo 3D
+
+Calcula os parámetros y la matriz fundamental del par 3D a partir de los datos de calibración. 
+Es necesario haber invocado a la función anterior para que esta funcione bien, ya que depende de los datos de calibración 
+de cada cámara.
+
+```
+code/calibrate_stereo_pair.py -D data -A 2024-03-18-vino_comun
+```
+
+### Extracción
+
+Finalmente, con la información de calibración y los videos se puede proceder a extraer y rectificar los cuadros. Este programa permite además redimensionar y recortar las salidas, saltearse frames, y detectar los códigos QR que van apareciendo, que se almacenan en un CSV.
+
+```
+usage: extract.py [-h] -D DATADIR -A ADQDIR [-r RESCALE_FACTOR] -i
+                  INI_DATA_FRAME [-f FIN_DATA_FRAME] [-s SKIP] -a ANNOTATION
+                  [-c CALIBRATION] [-o OUTPUT] [-T TOP_CROP] [-B BOTTOM_CROP]
+
+options:
+  -h, --help            show this help message and exit
+  -D DATADIR, --datadir DATADIR
+                        directorio donde se encuentran todos los datos.
+  -A ADQDIR, --adqdir ADQDIR
+                        nombre de directorio de la instancia de adquisicion,
+                        por ej: 2024-01-03-vino_fino SIN terminadores
+                        (barras).
+  -r RESCALE_FACTOR, --rescale-factor RESCALE_FACTOR
+                        Reduce output this many times (defaults to 4).
+  -i INI_DATA_FRAME, --ini-data-frame INI_DATA_FRAME
+                        First data frame to extract.
+  -f FIN_DATA_FRAME, --fin-data-frame FIN_DATA_FRAME
+                        First data frame to extract.
+  -s SKIP, --skip SKIP  Output every this number of frames (defaults to 5).
+  -a ANNOTATION, --annotation ANNOTATION
+                        Calibration info JSON file produced by annotate.
+  -c CALIBRATION, --calibration CALIBRATION
+                        Directory where calibration results were stored.
+                        Defaults to annotations file name with .calib suffix.
+  -o OUTPUT, --output OUTPUT
+                        Output directory for data produced by this function.
+                        This is appended to basedir. Default is the name of
+                        the annotations file with a .output prefix
+  -T TOP_CROP, --top-crop TOP_CROP
+                        Crop the top T% pixels from the output image. This
+                        does not affect QR detection as it is done after that
+                        stage.
+  -B BOTTOM_CROP, --bottom-crop BOTTOM_CROP
+                        Crop the top T% pixels from the output image. This
+                        does not affect QR detection as it is done after that
+                        stage.
+```
+
+Por ejemplo:
+```
+code/extract.py -D data/$1 -a data/2024-03-04-vino_fino/gopro1+gopro2_toma1.json -i 2365 -f 10000
+```

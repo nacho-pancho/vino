@@ -251,11 +251,17 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
+    ap.add_argument("-a","--camera-a", type=str, required=True,
+                    help="primera cámara (siempre tiene que estar)")
+    ap.add_argument("-b","--camera-b", type=str, default=None,
+                    help="segunda cámara (si es un par)")
+    ap.add_argument("-t","--toma", type=int, default=1,
+                    help="número de toma")
     ap.add_argument("-D","--datadir",type=str,required=True,help="directorio donde se encuentran todos los datos.")
     ap.add_argument("-A","--adqdir", type=str, required=True,
                     help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
 
-    ap.add_argument('-r',"--rescale-factor", type=int, default=8,
+    ap.add_argument('-R',"--rescale-factor", type=int, default=8,
                     help="Reduce resolution this many times (defaults to 8 -- brutal). ")
     ap.add_argument('-a',"--annotation", type=str, required=True,
                     help="Calibration JSON file produced by annotate. ")
