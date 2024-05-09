@@ -49,17 +49,13 @@ options:
                         primera cámara (siempre tiene que estar)
   -b CAMERA_B, --camera-b CAMERA_B
                         segunda cámara (si es un par)
-  -t TOMA, --toma TOMA  número de toma
-  -p PARTE, --parte PARTE
+  -t N, --take N  número de toma
+  -p PART, --parte PART
                         número de parte (en gral. para calibrar usamos siempre
                         la 1)
   -A ADQDIR, --adqdir ADQDIR
                         nombre de directorio de la instancia de adquisicion,
                         por ej: 2024-01-03-vino_fino SIN terminadores (barras)
-  -o JSON_FILE, --json-file JSON_FILE
-                        Nombre de archivo de JSON con anotaciones. Si no se
-                        especifica se genera en base al resto de los
-                        parametros.
   -r ROTATION1, --rotation1 ROTATION1
                         rotation of first input.
   -s ROTATION2, --rotation2 ROTATION2
@@ -70,11 +66,11 @@ options:
 * `-D DATADIR` especifica la _base_  de todos los datos de todas las adquisiciones. Por ejemplo, en mi mac, eso es /Users/home/nacho/workspace/vino/data. Puede ser especificado relativo al comando. Si `annotate.py ` se ejecuta desde la raiz del GIT `vino`, puede simplemente ponerse `-D data`
 - `-A ADQDIR` carpeta base de la instancia de adquisición que quiere procesarse. Por ejemplo, `2024-03-18-vino_comun`. Los parámetros `-D` y `-A`  se concatenan para generar la carpeta base en donde se encuentran a su vez las subcarpetas en donde se encuentran los videos, que llevan como nombre la cámara con las que se tomó. 
 * `-a CAMERA_A`, `-b CAMERA_B` especifican los nombres base de las cámaras. Esto _determina_ la carpeta en donde se encuentran los videos a procesasr, y el _prefijo_ de los archivos de video dentro de ellas.
-* `-t TOMA`, `-p PARTE` por defecto estos parámetros son ambos 1 y a los efectos de la calibración deberían ser siempre 1 salvo que pase algo raro. Estos dos valores _determinan_ el nombre de los archivos de video junto con los datos anteriores. A modo de ejemplo, si se pasa `-D data -A 2024-03-18-vino_comun -a gopro1 -b gopro2 -t 1 -p 1`, los archivos y carpetas quedan definidos así: `data/2024-03-18-vino_comun/gopro1/gopro1_toma1_parte1.mp4`  para el video de la cámara 1 y `data/2024-03-18-vino_comun/gopro2/gopro2_toma1_parte1.mp4` para el video de la segunda cámara.
-* `-o JSON_FILE` determina el nomre del archiuvo en donde se almacenan las anotaciones. Si no se especifica (lo que sugerimos), el archivo de anotaciones queda en `DATADIR/ADQDIR/CAMERA_A+CAMERA_B_tomaTOMA.json`. En el ejemplo anterior seria `data/2024-03-18-vino_comun/gopro1+gopro2_toma1.json`
+* `-t TAKE`, `-p PART` por defecto estos parámetros son ambos 1 y a los efectos de la calibración deberían ser siempre 1 salvo que pase algo raro. Estos dos valores _determinan_ el nombre de los archivos de video junto con los datos anteriores. A modo de ejemplo, si se pasa `-D data -A 2024-03-18-vino_comun -a gopro1 -b gopro2 -t 1 -p 1`, los archivos y carpetas quedan definidos así: `data/2024-03-18-vino_comun/gopro1/gopro1_toma1_parte1.mp4`  para el video de la cámara 1 y `data/2024-03-18-vino_comun/gopro2/gopro2_toma1_parte1.mp4` para el video de la segunda cámara.
 * `-r ROTATION1` especifica la rotación a aplicar a los frames de la camara a. Por defecto 0
 * `-s ROTATION2` rotación d elos frames de la cámara b
 
+El archivo JSON, así como todas las salidas de las distintas etapas, son generados automáticamente a partir de los datos `DATADIR`, `ADQDIR`, `CAMERA_A`, `CAMERA_B` y `TAKE`. En el ejemplo anterior sería `data/2024-03-18-vino_comun/gopro1+gopro2_toma1.json`
 
 ![Programa de anotación](docs/fig/annotate.png)
 
@@ -93,22 +89,64 @@ La calibración de luz, implementada en `calibrate_light.py`, toma el archivo ge
 * el blanco medio de la cámara, para ajustar el balance global de blancos; para eso se usa el promedio de los pixeles _no saturados_ de los frames seleccionados en la anotación entre `ini_white_frame` y `fin_white_frame`.
 * la curva media de iluminación. Los focos producen una luz no uniforme sobre las uvas y eso hay que corregirlo. Para eso se expone una plancha blanca frente a cada par de cámaras, más o menos a la distancia que aparecen las uvas, durante cierto tiempo, de modo que cubra todo el frame (idealmente). Los pixeles _no saturados_  de estos frames se promedian y se utilizan para ajustar un polinomio de segundo grado. Hay que tener mucho cuidado de que no queden zonas oscuras/no cubiertas en los frames de calbiración de blancos. Para evitar esto tenemos el `crobpox` que se define dibujando en el programa de anotación.
 
+Nuevamente, la ruta del archivo JSON, así como de las carpetas en donde se guardan las salidas de las distintas etapas, son determinados automáticamente a partir de los datos `DATADIR`, `ADQDIR`, `CAMERA_A`, `CAMERA_B` y `TAKE`. En el ejemplo anterior sería `data/2024-03-18-vino_comun/gopro1+gopro2_toma1.json`
+
 La invocación del programa es la siguiente:
 
 ```
-code/calibrate_light.py -D data -A 2024-03-18-vino_comun
+code/calibrate_light.py -D data -A 2024-03-18-vino_comun -a camera1 [-b camera2] [-take N]
 ```
 
-La ubicación del JSON no se da relativa
 
 ### Calibración de parámetros intrínsecos de las cámaras
 
 Esta rutina calcula los parámetros intrínsecos de cada cámara en base a los frames de calibración entre `ini_calib_frame` y `fin_calib_frame`.
 
 ```
+Usage: calibrate_camera.py [-h] -a CAMERA_A [-b CAMERA_B] -D DATADIR -A ADQDIR [-R RESCALE_FACTOR] [-c CAMERA] [-t TAKE] [-l ALPHA] [-E EPSILON] [-I MAXITER]
+                           [-o OUTDIR] [-p PATTERN] [-M NROWS] [-N NCOLS] [-r ROTATE] [-L PATTERN_SIZE]
+
+options:
+  -h, --help            show this help message and exit
+  -a CAMERA_A, --camera-a CAMERA_A
+                        primera cámara (siempre tiene que estar)
+  -b CAMERA_B, --camera-b CAMERA_B
+                        segunda cámara (si es un par)
+  -D DATADIR, --datadir DATADIR
+                        Base directory for all gathered data.
+  -A ADQDIR, --adqdir ADQDIR
+                        nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)
+  -R RESCALE_FACTOR, --rescale-factor RESCALE_FACTOR
+                        Reduce resolution this many times (defaults to 8 -- brutal).
+  -c CAMERA, --camera CAMERA
+                        Which camera to calibrate.
+  -t TAKE, --take TAKE  Which take to process (toma).
+  -l ALPHA, --alpha ALPHA
+                        Parameter for OpenCV getOptimalNewCameraMatrix.
+  -E EPSILON, --epsilon EPSILON
+                        Tolerance for OpenCV corner subpixel estimation.
+  -I MAXITER, --maxiter MAXITER
+                        Parameter for OpenCV corner subpixel estimation.
+  -o OUTDIR, --outdir OUTDIR
+                        output directory. Defaults to the same name as the annotation file with .calib instead of .json as suffix.
+  -p PATTERN, --pattern PATTERN
+                        Type of calibration pattern. May be chessboard or circles.
+  -M NROWS, --nrows NROWS
+                        Number of rows in pattern.
+  -N NCOLS, --ncols NCOLS
+                        Number of columns in pattern.
+  -r ROTATE, --rotate ROTATE
+                        Save debugging info (frames).
+  -L PATTERN_SIZE, --pattern-size PATTERN_SIZE
+                        Size of patterns in real world (in your units of preference, doesn't matter).
+```
+
+```
 code/calibrate_camera.py -D data -A 2024-03-18-vino_comun
 ```
 
+
+El archivo JSON, así como todas las salidas de las distintas etapas, son generados automáticamente a partir de los datos `DATADIR`, `ADQDIR`, `CAMERA_A`, `CAMERA_B` y `TAKE`. En el ejemplo anterior sería `data/2024-03-18-vino_comun/gopro1+gopro2_toma1.json`
 
 ### Calibración de par stereo 3D
 
@@ -122,7 +160,7 @@ code/calibrate_stereo_pair.py -D data -A 2024-03-18-vino_comun
 
 ### Extracción
 
-Finalmente, con la información de calibración y los videos se puede proceder a extraer y rectificar los cuadros. Este programa permite además redimensionar y recortar las salidas, saltearse frames, y detectar los códigos QR que van apareciendo, que se almacenan en un CSV.
+Con la información de calibración y los videos se puede proceder a extraer y rectificar los cuadros. Este programa permite además redimensionar y recortar las salidas, saltearse frames, y detectar los códigos QR que van apareciendo, que se almacenan en un CSV.
 
 ```
 usage: extract.py [-h] -D DATADIR -A ADQDIR [-r RESCALE_FACTOR] -i
@@ -167,3 +205,7 @@ Por ejemplo:
 ```
 code/extract.py -D data/$1 -a data/2024-03-04-vino_fino/gopro1+gopro2_toma1.json -i 2365 -f 10000
 ```
+
+### Stitching
+
+Con los frames extraídos y un archivo CSV en donde cada fila marca el comienzo y el final de un sector, esta utilidad genera panoramas de los sectores.

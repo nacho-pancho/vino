@@ -36,17 +36,17 @@ class VidUI():
     '''
     def __init__(self,cap1,cap2,args):
         super().__init__()
-        rot1 = args["rotation1"]
-        rot2 = args["rotation2"]
+        self.rot = [args["rotation1"],args["rotation2"]]
         camera_a = args["camera_a"]
         camera_b = args["camera_b"]
         toma = args["take"]
         adq_dir = args["adqdir"]
+        data_dir = args["datadir"]
         rel_json_fname = generate_annotations_filename(camera_a,camera_b,toma)
-        json_fname = os.path.join(adq_dir,rel_json_fname)
+        self.json_fname = os.path.join(data_dir, adq_dir,rel_json_fname)
+        print("JSON file:",self.json_fname)
         self.root = tk.Tk()
         self.style = ttk.Style(self.root)
-        self.json_fname = json_fname
         self.dtick = 100
 
         #
@@ -61,24 +61,47 @@ class VidUI():
             self.ncams = 2
         else:
             self.ncams = 1
-        
+
+        self.scale = None
+        if os.path.exists(self.json_fname):
+            print("Loading data from existing JSON.")
+            self.load()
+        else:
+            self.annotations = {
+                "camera_a":args["camera_a"],
+                "camera_b":args["camera_b"],
+                "take":args["take"],
+                "part":args["part"],
+                "ini_calib_frame":-1,
+                "fin_calib_frame":-1,
+                "ini_white_frame":-1,
+                "fin_white_frame":-1,
+                "sync_1_frame":-1,
+                "sync_2_frame":-1,
+                "rot1": self.rot[0],
+                "rot2": self.rot[1]
+                }
+        print(json.dumps(self.annotations))
 
         self.cap = [cap1,cap2]
-        self.rot = [rot1,rot2]
-
         self.cv2_frame = [None,None]
         self.color_frame = [None,None]
         self.gray_frame = [None,None]
         self.tk_image = [None,None]
         self.fps = [None,None]
-        self.nframes = 0
+        self.nframes = 1000000000
         for C in range(self.ncams):
             self.fps[C] = self.cap[C].get(cv2.CAP_PROP_FPS)
-            self.nframes = max(self.nframes,self.cap[C].get(cv2.CAP_PROP_FRAME_COUNT))
-        self.frame_idx = 0
+            nframes_c = self.cap[C].get(cv2.CAP_PROP_FRAME_COUNT)
+            self.annotations[f"fps_{C+1}"] = self.fps[C]
+            self.annotations[f"nframes_{C+1}"] = nframes_c
+            self.nframes = min(self.nframes,nframes_c)
+            print(f"Total number of frames for camera {C} : {nframes_c}")
+        self.frame_idx = 0 # self.nframes-1 # DEBUG
         self.grab_frame()
 
         self.frame_height,self.frame_width,nchannels = self.color_frame[C].shape
+        self.annotations["crop_box"] = [0,self.frame_height,0,self.frame_width]
         two_images_width = 2 * self.frame_width
         two_images_height = self.frame_height
         self.window_width = 1900
@@ -110,30 +133,8 @@ class VidUI():
         self.x1 = 0
         self.y1 = 0
         self.x2 = 0
-        self.y2 = 0
-
-
-        #
-        # annotated parameters
-    
-        self.annotations = {
-            "camera_a":args["camera_a"],
-            "camera_b":args["camera_b"],
-            "take":args["toma"],
-            "part":args["parte"],
-            "ini_calib_frame":-1,
-            "fin_calib_frame":-1,
-            "ini_white_frame":-1,
-            "fin_white_frame":-1,
-            "sync_1_frame":-1,
-            "sync_2_frame":-1,
-            "crop_box": [0,self.frame_height,0,self.frame_width],
-            "rot1": self.rot[0],
-            "rot2": self.rot[1]
-            }
-
+        self.y2 = 0    
         helv = tkfont.Font(family='Helvetica', size=24, weight='bold')
-
         self.scaled_cropbox = [self.scale*x for x in self.annotations["crop_box"]]
         fmain = ttk.Frame(self.root)
         nav_bar = ttk.Frame(fmain,padding=2)
@@ -164,8 +165,8 @@ class VidUI():
         ci += 1
 
         nav_bar.pack(side=tk.BOTTOM)
-        self.slider = ttk.Scale(fmain,from_=0,to=self.nframes,variable=0,orient='horizontal',command=self.slide_to_frame)
-        self.slider.pack(side=tk.TOP,fill='x')
+        #self.slider = ttk.Scale(fmain,from_=0,to=1,variable=0,orient='horizontal',command=self.slide_to_frame)
+        #self.slider.pack(side=tk.TOP,fill='x')
 
         side_bar = ttk.Frame(fmain,padding=2)
         ri = 0
@@ -202,7 +203,8 @@ class VidUI():
 
     def grab_frame(self):
         for C in range(self.ncams):
-            self.cap[C].set(cv2.CAP_PROP_POS_FRAMES, self.frame_idx)
+            #self.cap[C].set(cv2.CAP_PROP_POS_FRAMES, self.frame_idx) # NO FUNCIONA BIEN
+            self.cap[C].set(cv2.CAP_PROP_POS_AVI_RATIO,self.frame_idx/self.nframes)
             ret, self.cv2_frame[C] = cap[C].read()
             self.color_frame[C] = np.flip(np.array(self.cv2_frame[C]),axis=2)
             height,width,nchannels = self.color_frame[C].shape
@@ -226,7 +228,8 @@ class VidUI():
     def load(self):
         with open(self.json_fname,"r") as f:
             self.annotations = json.loads(f.read())
-        self.scaled_cropbox = [int(self.scale*x) for x in self.annotations["crop_box"]]
+        if self.scale is not None:
+            self.scaled_cropbox = [int(self.scale*x) for x in self.annotations["crop_box"]]
         self.rot[0] = self.annotations["rot1"]
         self.rot[1] = self.annotations["rot2"]
 
@@ -285,16 +288,18 @@ class VidUI():
     def goto_frame(self,event):
         key = event.widget.winfo_name()[5:]
         idx = self.annotations[key]
+        if idx < 0:
+            print("WARNING: index not defined!")
         idx = min(self.nframes,max(0,idx))
         self.frame_idx = idx
+        #self.slider.set(self.frame_idx/self.nframes)
         self.grab_frame()
-        self.slider.set(self.frame_idx)
         self.update()
 
 
     def slide_to_frame(self,event):
-        print("slide to frame", int(self.slider.get()))
-        self.frame_idx = int(self.slider.get())
+        #print("slide to frame", int(self.slider.get()))
+        #self.frame_idx = int(self.slider.get())
         self.grab_frame()
         self.update()
 
@@ -302,7 +307,7 @@ class VidUI():
     def next_frame(self):
         delta = min(self.nframes-self.frame_idx-1,self.speed)
         self.frame_idx += self.speed
-        self.slider.set(self.frame_idx)
+        #self.slider.set(self.frame_idx/self.nframes)
         self.grab_frame()
         self.update()
 
@@ -310,7 +315,7 @@ class VidUI():
     def prev_frame(self):
         delta = min(self.speed,self.frame_idx)
         self.frame_idx -= delta
-        self.slider.set(self.frame_idx)
+        #self.slider.set(self.frame_idx/self.nframes)
         self.grab_frame()
         self.update()
 
@@ -383,15 +388,15 @@ if __name__ == "__main__":
                     help="primera cámara (siempre tiene que estar)")
     ap.add_argument("-b","--camera-b", type=str, default=None,
                     help="segunda cámara (si es un par)")
-    ap.add_argument("-t","--toma", type=int, default=1,
+    ap.add_argument("-t","--take", type=int, default=1,
                     help="número de toma")
-    ap.add_argument("-p","--parte", type=int, default=1,
+    ap.add_argument("-p","--part", type=int, default=1,
                     help="número de parte (en gral. para calibrar usamos siempre la 1)")
     ap.add_argument("-A","--adqdir", type=str, required=True,
                     help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
-    ap.add_argument("-r","--rotation1", type=int, default=0,
+    ap.add_argument("-r","--rotation1", type=int, default=None,
                     help="rotation of first input.")
-    ap.add_argument("-s","--rotation2", type=int, default=0,
+    ap.add_argument("-s","--rotation2", type=int, default=None,
                     help="rotation of second input.")
     
     args = vars(ap.parse_args())
@@ -401,8 +406,8 @@ if __name__ == "__main__":
     print(f"Ruta absoluta de adquisicion: {adq_path}")
     
     camera_a = args["camera_a"]
-    toma = args["toma"]
-    parte = args["parte"]
+    toma = args["take"]
+    parte = args["part"]
 
     camera_a_path = os.path.join(adq_path,camera_a)
     print(f"Ruta a cámara {camera_a}: {camera_a_path}")
@@ -423,8 +428,16 @@ if __name__ == "__main__":
         if cap[1] is None or not cap[1].isOpened():
             print(f"Error al abrir archivo de video {toma_b_path}")
             exit(1)
+    if args["rotation1"] is None:
+        args["rotation1"] = guess_orientation(cap[0])
+        print("Orientation of camera 1 was guessed as ",args["rotation1"])
+        cap[0].set(cv2.CAP_PROP_POS_AVI_RATIO, 0.0)
 
-
+    if cap[1] is not None and args["rotation2"] is None:
+        args["rotation2"] = guess_orientation(cap[1])
+        print("Orientation of camera 2 was guessed as ",args["rotation2"])
+        cap[1].set(cv2.CAP_PROP_POS_AVI_RATIO, 0.0) 
+    
     gui  = VidUI(cap[0],cap[1],args)
     
     if cap[0]:

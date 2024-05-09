@@ -21,7 +21,7 @@ from skimage import io as imgio
 from skimage import transform as trans
 import json
 import os
-
+from vutils import *
 def compute_offsets(annotations):
     sync_1 = annotations["sync_1_frame"]
     sync_2 = annotations["sync_2_frame"]
@@ -255,7 +255,7 @@ if __name__ == "__main__":
                     help="primera cámara (siempre tiene que estar)")
     ap.add_argument("-b","--camera-b", type=str, default=None,
                     help="segunda cámara (si es un par)")
-    ap.add_argument("-t","--toma", type=int, default=1,
+    ap.add_argument("-t","--take", type=int, default=1,
                     help="número de toma")
     ap.add_argument("-D","--datadir",type=str,required=True,help="directorio donde se encuentran todos los datos.")
     ap.add_argument("-A","--adqdir", type=str, required=True,
@@ -263,16 +263,15 @@ if __name__ == "__main__":
 
     ap.add_argument('-R',"--rescale-factor", type=int, default=8,
                     help="Reduce resolution this many times (defaults to 8 -- brutal). ")
-    ap.add_argument('-a',"--annotation", type=str, required=True,
-                    help="Calibration JSON file produced by annotate. ")
     ap.add_argument('-o',"--output", type=str, default=None,
                     help="Output prefix for data produced by this function. This is appended to basedir.")
     ap.add_argument('-m',"--method", type=str, default="max",
                     help="Method for computing the white frame. May be average,max,or an integer for the percentile (much slower).")
     args = vars(ap.parse_args())
 
-    json_fname = args["annotation"]
-
+    rel_json_fname = generate_annotations_filename(args["camera_a"],args["camera_b"],args["take"])
+    json_fname = os.path.join(args["datadir"],args["adqdir"],rel_json_fname)
+    print("JSON file: ",json_fname)
     with open(json_fname,"r") as f:
         annotations = json.loads(f.read())
         print(json.dumps(annotations,indent="    "))

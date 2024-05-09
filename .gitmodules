@@ -13,3 +13,6 @@
 [submodule "contrib/restauracion-video"]
 	path = contrib/restauracion-video
 	url = git@github.com:nacho-pancho/restauracion-video.git
+[submodule "contrib/colmap"]
+	path = contrib/colmap
+	url = https://github.com/colmap/colmap.git
