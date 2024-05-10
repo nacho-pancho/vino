@@ -165,6 +165,15 @@ def extract(input_dir, annotations, calibration, args, output_dir):
                     color_frame = color_frame[top_crop:bottom_crop,:,:]
                 frame_name = f'camera{c+1}_frame_{frame_index:07d}'
                 imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
+                if args["crude"]:
+                    crude_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
+                    crude_frame = np.flip(np.array(crude_frame),axis=2)            
+                    crude_frame = fast_rot(crude_frame,rot[c])
+                    imgio.imsave(os.path.join(output_dir,frame_name+'_crude.jpg'),crude_frame,quality=90)
+                    imgio.imsave(os.path.join(output_dir,frame_name+'_refined.jpg'),color_frame,quality=90)
+                else:
+                    imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
+
                 frame_index += 1
                 #_fps = (n+1)/(time.time()-t0)
                 #print(f'frame {n+ini_data:05d}  fps {_fps:7.1f}')
@@ -214,6 +223,7 @@ if __name__ == "__main__":
     ap.add_argument('-T',"--top-crop", type=int,  default=0, help="Crop the top T%% pixels from the output image. This does not affect QR detection as it is done after that stage.")
     ap.add_argument('-B',"--bottom-crop", type=int,  default=0, help="Crop the top T%% pixels from the output image. This does not affect QR detection as it is done after that stage.")
     ap.add_argument('-v','--create-csv',action='store_true')
+    ap.add_argument('-x','--crude',action="store_true",help='Save non-rectified frames as well. For comparison.')
     args = vars(ap.parse_args())
     camera_a = args["camera_a"]
     camera_b = args["camera_b"]
