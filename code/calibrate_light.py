@@ -22,60 +22,22 @@ from skimage import transform as trans
 import json
 import os
 from vutils import *
-def compute_offsets(annotations):
-    sync_1 = annotations["sync_1_frame"]
-    sync_2 = annotations["sync_2_frame"]
-
-    if sync_1 < 0:
-        sync_1 = 0
-        print("WARNING: Assuming sync frame 1 is 0 (does not seem right but...)")
-
-    if sync_2 < 0:
-        sync_2 = 0
-        print("WARNING: Assuming sync frame 2 is 0 (does not seem right but...)")
-
-    if sync_1 == 0 and sync_2 == 0:
-        print("WARNING: both sync frames are 0. Did you really annotate this?")
-    
-    if sync_1 < sync_2:
-        # marker appeared in an earlier frame in camera 1 => it started AFTER camera 2
-        # so we discard sync_1 - sync_2 frames from camera 2 to put them in sync
-        offset = [0,sync_2 - sync_1]
-    else:
-        # vice versa
-        offset = [sync_1 - sync_2,0]
-    print(f"Frame offsets: camera 1:{offset[0]} camera 2:{offset[1]}")
-    return offset
-
-
-def fast_rot(img,rot):
-    if rot < 0:
-        rot += 360
-    if rot == 0:
-        return img
-    elif rot == 90:
-        return np.transpose(np.flip(img,axis=0),(1,0,2))
-    elif rot == 270:
-        return np.flip(np.transpose(img,(1,0,2)),axis=0)
-    elif rot == 180:
-        return np.flip(np.flip(img,axis=0),axis=1)
-    else:
-        return (255*trans.rotate(img,rot,resize=True)).astype(np.uint8) # rotation scales colors to 0-1!!
 
 
 def do_white(annotations,args,output_dir):
     calibration = dict()
     input_fname = [None,None]
     camera_a = annotations["camera_a"]
+    camera_b = annotations["camera_b"]
     take = annotations["take"]
     res_fac = args["rescale_factor"]
     basedir = os.path.join(args["datadir"],args["adqdir"])
     input_fname[0] = os.path.join(basedir,f'{camera_a}/{camera_a}_toma{take}_parte1.mp4')
-    calibration["camera1"] = {"input_fname":input_fname[0]} 
+    rot = annotations["rot1"]
+    camera = [camera_a,camera_b]
     if annotations["camera_b"]:
         camera_b = annotations["camera_b"]
         input_fname[1] = os.path.join(basedir,f'{camera_b}/{camera_b}_toma{take}_parte1.mp4')
-        calibration["camera2"] = {"input_fname":input_fname[1]}
         ncam = 2
         calibration["ncam"] = 2
         rot = [ annotations["rot1"], annotations["rot2"]]
@@ -83,9 +45,6 @@ def do_white(annotations,args,output_dir):
     else:
         ncam = 1
         calibration["ncam"] = 1
-        rot = annotations["rot1"]
-        calibration["camera1"]["rotation"]=rot
-        calibration["camera1"]["offset"]=0
         offset = [0,0]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir,exist_ok=True)
@@ -105,11 +64,13 @@ def do_white(annotations,args,output_dir):
     n_white = 20 # DEBUG
     fps = [None,None]
     cap = [None,None]
+    nframes = [None,None]
     for c in range(ncam):
         print(f"camera {c}:")
 
         cap[c] = cv2.VideoCapture(input_fname[c])
-        cap[c].set(cv2.CAP_PROP_POS_FRAMES, offset[c]+ini_white)
+        nframes[c] = cap[c].get(cv2.CAP_PROP_FRAME_COUNT)
+        cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, (offset[c]+ini_white)/nframes[c])
         fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
         camera_c_key = f"camera{c+1}"
         calibration_c = dict() 
@@ -117,6 +78,7 @@ def do_white(annotations,args,output_dir):
         calibration_c["offset"]=offset[c]
         calibration_c["fps"] = fps[c]
         calibration_c["rotation"] = rot[c]
+        calibration_c["name"] = camera[c]
         print("\tframes per second: ",fps[c])
         print("\trotation:",rot[c])
 
@@ -138,7 +100,7 @@ def do_white(annotations,args,output_dir):
                 ret, frame = cap[c].read(frame)
             if not ret:
                 break
-            color_frame = fast_rot(frame,-rot[c])
+            color_frame = fast_rot(frame,rot[c])
             h0,w0,_ = color_frame.shape
             color_frame = cv2.resize(color_frame,(w0//res_fac,h0//res_fac))
             color_frame = np.flip(np.array(color_frame),axis=2)
@@ -158,7 +120,7 @@ def do_white(annotations,args,output_dir):
             mean_blue  += np.sum(color_frame[:,:,2]*valid_pixels)
             max_frame[:] = np.maximum(max_frame,gray_frame)
 
-            if not n % 30:
+            if not n % 5:
                 _fps = n/(time.time()-t0)
                 imgio.imsave(os.path.join(output_dir,f'camera{c+1}_white_{n+ini_white:05d}.jpg'),color_frame)
                 print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')

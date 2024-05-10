@@ -79,8 +79,8 @@ def extract(input_dir, annotations, calibration, args, output_dir):
         print("="*80)
         print(f"camera {camera[c]}:")
         white_balance = calibration[f"camera{c+1}"]["white_balance"]
+        fps[c] = calibration[f'camera{c+1}']["fps"]
         if frames_in_seconds:
-            fps[c] = calibration[f'camera{c+1}']["fps"]
             ini_frame = int(ini_frame*fps[c])
             final_frame = int(final_frame*fps[c])
         print("ini_frame",ini_frame,"fin_frame",final_frame,"offset",offset[c])
@@ -246,6 +246,6 @@ if __name__ == "__main__":
             annotations = json.loads(fa.read())
             calibration = json.loads(fc.read())
             print("annotations:",json.dumps(annotations,indent="  "))
-            print("calibration:",json.dumps(annotations,indent="  "))
+            print("calibration:",json.dumps(calibration,indent="  "))
             extract(input_dir, annotations, calibration, args, output_dir)
 
