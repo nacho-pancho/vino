@@ -98,9 +98,17 @@ def extract(input_dir, annotations, calibration, args, output_dir):
             nframes_c_p = int(cap[c].get(cv2.CAP_PROP_FRAME_COUNT))
             nframes[c].append(nframes_c_p)
             print("number of frames in this part:",nframes_c_p)
+            
             # initial frame is beyond this part
             
             cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, frame_index/nframes_c_p)
+            # if offset is negative , repeat first frame offset times
+            if frame_index < 0:
+                cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, 0)
+                ret, frame = cap[c].read()
+            else:
+                cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, frame_index/nframes_c_p)
+
             #
             # create QR code detector instance
             #
@@ -109,16 +117,19 @@ def extract(input_dir, annotations, calibration, args, output_dir):
             # Loop until the end of the video
             while (cap[c].isOpened()) and frame_index < min(final_frame,nframes_c_p): # ----- loop over frames
                 # Capture frame-by-frame
-                if frame is None:
-                    ret, frame = cap[c].read()
-                else:
-                    ret, frame = cap[c].read(frame)
-                if not ret:
-                    break
+                if frame_index >= 0:
+                    if frame is None:
+                        ret, frame = cap[c].read()
+                    else:
+                        ret, frame = cap[c].read(frame)
+                    if not ret:
+                        break
+
                 n = frame_index - ini_frame
                 if n > 0 and n % skip:
                     frame_index += 1
                     continue
+
                 h,w,_ = frame.shape
                 color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
                 color_frame = np.flip(np.array(color_frame),axis=2)            

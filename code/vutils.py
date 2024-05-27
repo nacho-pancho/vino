@@ -17,14 +17,19 @@ def compute_offsets(annotations):
 
     if sync_1 == 0 and sync_2 == 0:
         print("WARNING: both sync frames are 0. Did you really annotate this?")
-    
-    if sync_1 < sync_2:
-        # marker appeared in an earlier frame in camera 1 => it started AFTER camera 2
-        # so we discard sync_1 - sync_2 frames from camera 2 to put them in sync
-        offset = [0,sync_2 - sync_1]
-    else:
-        # vice versa
-        offset = [sync_1 - sync_2,0]
+
+    #  En realidad el offset tiene que hacerse siempre con respecto a la 
+    # cámara 1 porque los tiempos anotados son sobre la cámara 1.
+    #
+    return [0,sync_2-sync_1]
+
+    #if sync_1 < sync_2:
+    #    # marker appeared in an earlier frame in camera 1 => it started AFTER camera 2
+    #    # so we discard sync_1 - sync_2 frames from camera 2 to put them in sync
+    #    offset = [0,sync_2 - sync_1]
+    #else:
+    #    # vice versa
+    #    offset = [sync_1 - sync_2,0]
     print(f"Frame offsets: input 1 {offset[0]} input 2 {offset[1]}")
     return offset
 
