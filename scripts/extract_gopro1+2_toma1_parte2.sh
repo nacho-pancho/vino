@@ -1,89 +1,89 @@
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 6 -f 22 -o 2024-04-03-vino_fino-sector_164-165
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 22 -f 37 -o 2024-04-03-vino_fino-sector_163-164
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 37 -f 53 -o 2024-04-03-vino_fino-sector_162-163
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 53 -f 68 -o 2024-04-03-vino_fino-sector_161-162
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 68 -f 77 -o 2024-04-03-vino_fino-sector_160-161
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 77 -f 86 -o 2024-04-03-vino_fino-sector_159-160
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 86 -f 117 -o 2024-04-03-vino_fino-sector_180-159
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 117 -f 126 -o 2024-04-03-vino_fino-sector_179-180
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 126 -f 135 -o 2024-04-03-vino_fino-sector_178-179
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 135 -f 150 -o 2024-04-03-vino_fino-sector_177-178
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 150 -f 166 -o 2024-04-03-vino_fino-sector_176-177
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 166 -f 182 -o 2024-04-03-vino_fino-sector_175-176
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 182 -f 198 -o 2024-04-03-vino_fino-sector_174-175
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 198 -f 214 -o 2024-04-03-vino_fino-sector_173-174
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 214 -f 230 -o 2024-04-03-vino_fino-sector_172-173
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 230 -f 242 -o 2024-04-03-vino_fino-sector_171-172
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 242 -f 252 -o 2024-04-03-vino_fino-sector_170-171
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 252 -f 268 -o 2024-04-03-vino_fino-sector_209-170
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 268 -f 296 -o 2024-04-03-vino_fino-sector_208-209
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 296 -f 312 -o 2024-04-03-vino_fino-sector_207-208
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 312 -f 328 -o 2024-04-03-vino_fino-sector_206-207
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 328 -f 343 -o 2024-04-03-vino_fino-sector_205-206
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 343 -f 358 -o 2024-04-03-vino_fino-sector_204-205
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 358 -f 375 -o 2024-04-03-vino_fino-sector_203-204
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 375 -f 384 -o 2024-04-03-vino_fino-sector_202-203
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 384 -f 394 -o 2024-04-03-vino_fino-sector_201-202
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 394 -f 434 -o 2024-04-03-vino_fino-sector_218-201
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 434 -f 445 -o 2024-04-03-vino_fino-sector_217-218
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 445 -f 454 -o 2024-04-03-vino_fino-sector_216-217
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 454 -f 470 -o 2024-04-03-vino_fino-sector_215-216
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 470 -f 486 -o 2024-04-03-vino_fino-sector_214-215
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 486 -f 502 -o 2024-04-03-vino_fino-sector_213-214
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 502 -f 518 -o 2024-04-03-vino_fino-sector_212-213
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 518 -f 534 -o 2024-04-03-vino_fino-sector_211-212
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 534 -f 552 -o 2024-04-03-vino_fino-sector_210-211
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 552 -f 581 -o 2024-04-03-vino_fino-sector_242-210
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 581 -f 595 -o 2024-04-03-vino_fino-sector_241-242
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 595 -f 611 -o 2024-04-03-vino_fino-sector_240-241
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 611 -f 627 -o 2024-04-03-vino_fino-sector_239-240
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 627 -f 642 -o 2024-04-03-vino_fino-sector_238-239
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 642 -f 658 -o 2024-04-03-vino_fino-sector_237-238
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 658 -f 669 -o 2024-04-03-vino_fino-sector_236-237
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 669 -f 680 -o 2024-04-03-vino_fino-sector_235-236
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 680 -f 714 -o 2024-04-03-vino_fino-sector_250-235
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 714 -f 725 -o 2024-04-03-vino_fino-sector_249-250
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 725 -f 737 -o 2024-04-03-vino_fino-sector_248-249
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 737 -f 753 -o 2024-04-03-vino_fino-sector_247-248
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 753 -f 769 -o 2024-04-03-vino_fino-sector_246-247
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 769 -f 785 -o 2024-04-03-vino_fino-sector_245-246
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 785 -f 800 -o 2024-04-03-vino_fino-sector_244-245
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 800 -f 814 -o 2024-04-03-vino_fino-sector_243-244
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 814 -f 843 -o 2024-04-03-vino_fino-sector_270-243
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 843 -f 853 -o 2024-04-03-vino_fino-sector_269-270
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 853 -f 868 -o 2024-04-03-vino_fino-sector_268-269
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 868 -f 884 -o 2024-04-03-vino_fino-sector_267-268
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 884 -f 900 -o 2024-04-03-vino_fino-sector_266-267
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 900 -f 921 -o 2024-04-03-vino_fino-sector_265-266
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 921 -f 953 -o 2024-04-03-vino_fino-sector_276-265
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 953 -f 978 -o 2024-04-03-vino_fino-sector_275-276
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 978 -f 994 -o 2024-04-03-vino_fino-sector_274-275
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 994 -f 1010 -o 2024-04-03-vino_fino-sector_273-274
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1010 -f 1025 -o 2024-04-03-vino_fino-sector_272-273
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1025 -f 1034 -o 2024-04-03-vino_fino-sector_271-272
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1034 -f 1064 -o 2024-04-03-vino_fino-sector_296-271
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1064 -f 1073 -o 2024-04-03-vino_fino-sector_295-296
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1073 -f 1084 -o 2024-04-03-vino_fino-sector_294-295
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1084 -f 1099 -o 2024-04-03-vino_fino-sector_293-294
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1099 -f 1115 -o 2024-04-03-vino_fino-sector_292-293
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1115 -f 1126 -o 2024-04-03-vino_fino-sector_291-292
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1126 -f 1157 -o 2024-04-03-vino_fino-sector_302-291
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1157 -f 1168 -o 2024-04-03-vino_fino-sector_301-302
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1168 -f 1184 -o 2024-04-03-vino_fino-sector_300-301
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1184 -f 1199 -o 2024-04-03-vino_fino-sector_299-300
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1199 -f 1210 -o 2024-04-03-vino_fino-sector_298-299
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1210 -f 1220 -o 2024-04-03-vino_fino-sector_297-298
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1220 -f 1248 -o 2024-04-03-vino_fino-sector_318-297
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1248 -f 1264 -o 2024-04-03-vino_fino-sector_317-318
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1264 -f 1280 -o 2024-04-03-vino_fino-sector_316-317
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1280 -f 1293 -o 2024-04-03-vino_fino-sector_315-316
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1293 -f 1331 -o 2024-04-03-vino_fino-sector_322-315
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1331 -f 1344 -o 2024-04-03-vino_fino-sector_321-322
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1344 -f 1360 -o 2024-04-03-vino_fino-sector_320-321
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1360 -f 1376 -o 2024-04-03-vino_fino-sector_319-320
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1376 -f 1406 -o 2024-04-03-vino_fino-sector_333-319
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1406 -f 1420 -o 2024-04-03-vino_fino-sector_332-333
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1420 -f 1432 -o 2024-04-03-vino_fino-sector_331-332
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1432 -f 1465 -o 2024-04-03-vino_fino-sector_336-331
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1465 -f 1478 -o 2024-04-03-vino_fino-sector_335-336
-code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1478 -f 1491 -o 2024-04-03-vino_fino-sector_334-335
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 6 -f 22 -p 2 -o 2024-04-03-vino_fino-sector_164-165
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 22 -f 37 -p 2 -o 2024-04-03-vino_fino-sector_163-164
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 37 -f 53 -p 2 -o 2024-04-03-vino_fino-sector_162-163
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 53 -f 68 -p 2 -o 2024-04-03-vino_fino-sector_161-162
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 68 -f 77 -p 2 -o 2024-04-03-vino_fino-sector_160-161
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 77 -f 86 -p 2 -o 2024-04-03-vino_fino-sector_159-160
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 86 -f 117 -p 2 -o 2024-04-03-vino_fino-sector_180-159
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 117 -f 126 -p 2 -o 2024-04-03-vino_fino-sector_179-180
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 126 -f 135 -p 2 -o 2024-04-03-vino_fino-sector_178-179
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 135 -f 150 -p 2 -o 2024-04-03-vino_fino-sector_177-178
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 150 -f 166 -p 2 -o 2024-04-03-vino_fino-sector_176-177
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 166 -f 182 -p 2 -o 2024-04-03-vino_fino-sector_175-176
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 182 -f 198 -p 2 -o 2024-04-03-vino_fino-sector_174-175
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 198 -f 214 -p 2 -o 2024-04-03-vino_fino-sector_173-174
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 214 -f 230 -p 2 -o 2024-04-03-vino_fino-sector_172-173
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 230 -f 242 -p 2 -o 2024-04-03-vino_fino-sector_171-172
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 242 -f 252 -p 2 -o 2024-04-03-vino_fino-sector_170-171
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 252 -f 268 -p 2 -o 2024-04-03-vino_fino-sector_209-170
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 268 -f 296 -p 2 -o 2024-04-03-vino_fino-sector_208-209
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 296 -f 312 -p 2 -o 2024-04-03-vino_fino-sector_207-208
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 312 -f 328 -p 2 -o 2024-04-03-vino_fino-sector_206-207
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 328 -f 343 -p 2 -o 2024-04-03-vino_fino-sector_205-206
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 343 -f 358 -p 2 -o 2024-04-03-vino_fino-sector_204-205
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 358 -f 375 -p 2 -o 2024-04-03-vino_fino-sector_203-204
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 375 -f 384 -p 2 -o 2024-04-03-vino_fino-sector_202-203
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 384 -f 394 -p 2 -o 2024-04-03-vino_fino-sector_201-202
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 394 -f 434 -p 2 -o 2024-04-03-vino_fino-sector_218-201
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 434 -f 445 -p 2 -o 2024-04-03-vino_fino-sector_217-218
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 445 -f 454 -p 2 -o 2024-04-03-vino_fino-sector_216-217
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 454 -f 470 -p 2 -o 2024-04-03-vino_fino-sector_215-216
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 470 -f 486 -p 2 -o 2024-04-03-vino_fino-sector_214-215
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 486 -f 502 -p 2 -o 2024-04-03-vino_fino-sector_213-214
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 502 -f 518 -p 2 -o 2024-04-03-vino_fino-sector_212-213
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 518 -f 534 -p 2 -o 2024-04-03-vino_fino-sector_211-212
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 534 -f 552 -p 2 -o 2024-04-03-vino_fino-sector_210-211
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 552 -f 581 -p 2 -o 2024-04-03-vino_fino-sector_242-210
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 581 -f 595 -p 2 -o 2024-04-03-vino_fino-sector_241-242
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 595 -f 611 -p 2 -o 2024-04-03-vino_fino-sector_240-241
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 611 -f 627 -p 2 -o 2024-04-03-vino_fino-sector_239-240
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 627 -f 642 -p 2 -o 2024-04-03-vino_fino-sector_238-239
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 642 -f 658 -p 2 -o 2024-04-03-vino_fino-sector_237-238
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 658 -f 669 -p 2 -o 2024-04-03-vino_fino-sector_236-237
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 669 -f 680 -p 2 -o 2024-04-03-vino_fino-sector_235-236
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 680 -f 714 -p 2 -o 2024-04-03-vino_fino-sector_250-235
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 714 -f 725 -p 2 -o 2024-04-03-vino_fino-sector_249-250
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 725 -f 737 -p 2 -o 2024-04-03-vino_fino-sector_248-249
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 737 -f 753 -p 2 -o 2024-04-03-vino_fino-sector_247-248
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 753 -f 769 -p 2 -o 2024-04-03-vino_fino-sector_246-247
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 769 -f 785 -p 2 -o 2024-04-03-vino_fino-sector_245-246
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 785 -f 800 -p 2 -o 2024-04-03-vino_fino-sector_244-245
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 800 -f 814 -p 2 -o 2024-04-03-vino_fino-sector_243-244
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 814 -f 843 -p 2 -o 2024-04-03-vino_fino-sector_270-243
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 843 -f 853 -p 2 -o 2024-04-03-vino_fino-sector_269-270
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 853 -f 868 -p 2 -o 2024-04-03-vino_fino-sector_268-269
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 868 -f 884 -p 2 -o 2024-04-03-vino_fino-sector_267-268
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 884 -f 900 -p 2 -o 2024-04-03-vino_fino-sector_266-267
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 900 -f 921 -p 2 -o 2024-04-03-vino_fino-sector_265-266
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 921 -f 953 -p 2 -o 2024-04-03-vino_fino-sector_276-265
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 953 -f 978 -p 2 -o 2024-04-03-vino_fino-sector_275-276
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 978 -f 994 -p 2 -o 2024-04-03-vino_fino-sector_274-275
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 994 -f 1010 -p 2 -o 2024-04-03-vino_fino-sector_273-274
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1010 -f 1025 -p 2 -o 2024-04-03-vino_fino-sector_272-273
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1025 -f 1034 -p 2 -o 2024-04-03-vino_fino-sector_271-272
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1034 -f 1064 -p 2 -o 2024-04-03-vino_fino-sector_296-271
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1064 -f 1073 -p 2 -o 2024-04-03-vino_fino-sector_295-296
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1073 -f 1084 -p 2 -o 2024-04-03-vino_fino-sector_294-295
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1084 -f 1099 -p 2 -o 2024-04-03-vino_fino-sector_293-294
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1099 -f 1115 -p 2 -o 2024-04-03-vino_fino-sector_292-293
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1115 -f 1126 -p 2 -o 2024-04-03-vino_fino-sector_291-292
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1126 -f 1157 -p 2 -o 2024-04-03-vino_fino-sector_302-291
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1157 -f 1168 -p 2 -o 2024-04-03-vino_fino-sector_301-302
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1168 -f 1184 -p 2 -o 2024-04-03-vino_fino-sector_300-301
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1184 -f 1199 -p 2 -o 2024-04-03-vino_fino-sector_299-300
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1199 -f 1210 -p 2 -o 2024-04-03-vino_fino-sector_298-299
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1210 -f 1220 -p 2 -o 2024-04-03-vino_fino-sector_297-298
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1220 -f 1248 -p 2 -o 2024-04-03-vino_fino-sector_318-297
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1248 -f 1264 -p 2 -o 2024-04-03-vino_fino-sector_317-318
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1264 -f 1280 -p 2 -o 2024-04-03-vino_fino-sector_316-317
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1280 -f 1293 -p 2 -o 2024-04-03-vino_fino-sector_315-316
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1293 -f 1331 -p 2 -o 2024-04-03-vino_fino-sector_322-315
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1331 -f 1344 -p 2 -o 2024-04-03-vino_fino-sector_321-322
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1344 -f 1360 -p 2 -o 2024-04-03-vino_fino-sector_320-321
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1360 -f 1376 -p 2 -o 2024-04-03-vino_fino-sector_319-320
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1376 -f 1406 -p 2 -o 2024-04-03-vino_fino-sector_333-319
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1406 -f 1420 -p 2 -o 2024-04-03-vino_fino-sector_332-333
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1420 -f 1432 -p 2 -o 2024-04-03-vino_fino-sector_331-332
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1432 -f 1465 -p 2 -o 2024-04-03-vino_fino-sector_336-331
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1465 -f 1478 -p 2 -o 2024-04-03-vino_fino-sector_335-336
+code/extract.py -D data/videos -A 2024-03-04-vino_fino -a gopro1 -b gopro2 -s 6 -S -i 1478 -f 1491 -p 2 -o 2024-04-03-vino_fino-sector_334-335
