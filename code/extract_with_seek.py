@@ -30,7 +30,7 @@ from vutils import *
 
 
 def extract(input_dir, annotations, calibration, args, output_dir):
-
+    part = args["part"]
     input_fname = [None,None]
     camera =[ calibration["camera1"]["name"], calibration["camera2"]["name"]]
     take = annotations["take"]
@@ -46,12 +46,6 @@ def extract(input_dir, annotations, calibration, args, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir,exist_ok=True)
     frames_in_seconds = args["seconds"]
-    ini_frame = args["ini_data_frame"]
-    if ini_frame < 0:
-        ini_frame = 0
-    final_frame = args["fin_data_frame"]
-    if final_frame <= 0:
-        final_frame = 0
     #
     # we store the QR info in a CSV table along with the files
     #
@@ -91,102 +85,93 @@ def extract(input_dir, annotations, calibration, args, output_dir):
         print("ini_frame",ini_frame,"fin_frame",final_frame,"offset",offset[c])
         ini_frame += offset[c]
         frame_index = ini_frame
-        for p in range(1,10):
-            input_fname[c] = os.path.join(input_dir,f'{camera[c]}/{camera[c]}_toma{take}_parte{p}.mp4')
-            print(input_fname[c])
-            if not os.path.exists(input_fname[c]):
+        input_fname[c] = os.path.join(input_dir,f'{camera[c]}/{camera[c]}_toma{take}_parte{part}.mp4')
+        print(input_fname[c])
+        if not os.path.exists(input_fname[c]):
+            break
+        print("-"*80)
+        cap[c] = cv2.VideoCapture(input_fname[c])
+        #fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
+        nframes_c_p = int(cap[c].get(cv2.CAP_PROP_FRAME_COUNT))
+        nframes[c].append(nframes_c_p)
+        print("number of frames in this part:",nframes_c_p)
+        # initial frame is beyond this part
+        
+        cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, frame_index/nframes_c_p)
+        #
+        # create QR code detector instance
+        #
+        qr_detector = cv2.QRCodeDetector()
+
+        # Loop until the end of the video
+        while (cap[c].isOpened()) and frame_index < min(final_frame,nframes_c_p): # ----- loop over frames
+            # Capture frame-by-frame
+            if frame is None:
+                ret, frame = cap[c].read()
+            else:
+                ret, frame = cap[c].read(frame)
+            if not ret:
                 break
-            print("-"*80)
-            print("part ",p)
-            cap[c] = cv2.VideoCapture(input_fname[c])
-            #fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
-            nframes_c_p = int(cap[c].get(cv2.CAP_PROP_FRAME_COUNT))
-            nframes[c].append(nframes_c_p)
-            print("number of frames in this part:",nframes_c_p)
-            # initial frame is beyond this part
-            
-            cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, frame_index/nframes_c_p)
-            #
-            # create QR code detector instance
-            #
-            qr_detector = cv2.QRCodeDetector()
-
-            # Loop until the end of the video
-            while (cap[c].isOpened()) and frame_index < min(final_frame,nframes_c_p): # ----- loop over frames
-                # Capture frame-by-frame
-                if frame is None:
-                    ret, frame = cap[c].read()
-                else:
-                    ret, frame = cap[c].read(frame)
-                if not ret:
-                    break
-                n = frame_index - ini_frame
-                if n > 0 and n % skip:
-                    frame_index += 1
-                    continue
-                h,w,_ = frame.shape
-                color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
-                color_frame = np.flip(np.array(color_frame),axis=2)            
-                color_frame = fast_rot(color_frame,rot[c])
-                hr,wr,_ = color_frame.shape
-                color_frame = color_frame.astype(float)
-                if white_frame is None:
-                    top_crop = hr*args["top_crop"]//100
-                    bottom_crop = hr*(100-args["bottom_crop"])//100
-                    print("uncropped frame size: h=",hr,"w=",wr)
-                    print("crop: top",top_crop, "bottom",bottom_crop)
-                    white_frame = np.load(os.path.join(calibration_dir,calibration[f'camera{c+1}']["white_frame_matrix"]))
-                    hw,ww = white_frame.shape
-                    white_frame = trans.resize(white_frame,(hw//res_fac,ww//res_fac))*(1/255)
-                #
-                # apply rectification
-                #
-                color_frame[:,:,0] = (color_frame[:,:,0]/white_frame)*(255/white_balance["red"]) # both white balance and white frame are 0-255
-                color_frame[:,:,1] = (color_frame[:,:,1]/white_frame)*(255/white_balance["green"])
-                color_frame[:,:,2] = (color_frame[:,:,2]/white_frame)*(255/white_balance["blue"])            
-                color_frame = np.maximum(0,np.minimum(255,color_frame)).astype(np.uint8)
-                #
-                # detect QR code, if any
-                #
-                try:
-                    qr_info, qr_points, qr_data = qr_detector.detectAndDecode(color_frame[:,:,1])
-                except:
-                    qr_info = ""
-                if qr_info is not None and len(qr_info):
-                    qr_info = int(qr_info)
-                    frame_time_s = frame_index / fps[c]
-                    frame_time_min = int(np.floor(frame_time_s / 60))
-                    frame_time_s -= frame_time_min*60
-                    print(f'frame {frame_index:06d} (time {frame_time_min:02d}:{frame_time_s:5.2f}s: QR detected: {qr_info:03d}')
-                    qr_points = np.squeeze(np.round(qr_points).astype(int))
-                    if args["create_csv"]:
-                        csv_row = [c+1,frame_index]
-                        csv_row.extend(qr_points.ravel().tolist())
-                        csv_writer.writerow(csv_row)
-                #
-                # crop and save frame
-                #
-                if top_crop >0 or bottom_crop < hr:
-                    color_frame = color_frame[top_crop:bottom_crop,:,:]
-                frame_name = f'camera{c+1}_frame_{frame_index:07d}'
-                imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
-                if args["crude"]:
-                    crude_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
-                    crude_frame = np.flip(np.array(crude_frame),axis=2)            
-                    crude_frame = fast_rot(crude_frame,rot[c])
-                    imgio.imsave(os.path.join(output_dir,frame_name+'_crude.jpg'),crude_frame,quality=90)
-                    imgio.imsave(os.path.join(output_dir,frame_name+'_refined.jpg'),color_frame,quality=90)
-                else:
-                    imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
-
+            n = frame_index - ini_frame
+            if n > 0 and n % skip:
                 frame_index += 1
-                #_fps = (n+1)/(time.time()-t0)
-                #print(f'frame {n+ini_data:05d}  fps {_fps:7.1f}')
-                # ------- end while : we have read all frames from a given part and camera
-            print("finished with part ",p)    
-            final_frame -= nframes_c_p 
-            frame_index = 0
-            # release the video capture object 
+                continue
+            h,w,_ = frame.shape
+            color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
+            color_frame = np.flip(np.array(color_frame),axis=2)            
+            color_frame = fast_rot(color_frame,rot[c])
+            hr,wr,_ = color_frame.shape
+            color_frame = color_frame.astype(float)
+            if white_frame is None:
+                top_crop = hr*args["top_crop"]//100
+                bottom_crop = hr*(100-args["bottom_crop"])//100
+                print("uncropped frame size: h=",hr,"w=",wr)
+                print("crop: top",top_crop, "bottom",bottom_crop)
+                white_frame = np.load(os.path.join(calibration_dir,calibration[f'camera{c+1}']["white_frame_matrix"]))
+                hw,ww = white_frame.shape
+                white_frame = trans.resize(white_frame,(hw//res_fac,ww//res_fac))*(1/255)
+            #
+            # apply rectification
+            #
+            color_frame[:,:,0] = (color_frame[:,:,0]/white_frame)*(255/white_balance["red"]) # both white balance and white frame are 0-255
+            color_frame[:,:,1] = (color_frame[:,:,1]/white_frame)*(255/white_balance["green"])
+            color_frame[:,:,2] = (color_frame[:,:,2]/white_frame)*(255/white_balance["blue"])            
+            color_frame = np.maximum(0,np.minimum(255,color_frame)).astype(np.uint8)
+            #
+            # detect QR code, if any
+            #
+            try:
+                qr_info, qr_points, qr_data = qr_detector.detectAndDecode(color_frame[:,:,1])
+            except:
+                qr_info = ""
+            if qr_info is not None and len(qr_info):
+                qr_info = int(qr_info)
+                frame_time_s = frame_index / fps[c]
+                frame_time_min = int(np.floor(frame_time_s / 60))
+                frame_time_s -= frame_time_min*60
+                print(f'frame {frame_index:06d} (time {frame_time_min:02d}:{frame_time_s:5.2f}s: QR detected: {qr_info:03d}')
+                qr_points = np.squeeze(np.round(qr_points).astype(int))
+                if args["create_csv"]:
+                    csv_row = [c+1,frame_index]
+                    csv_row.extend(qr_points.ravel().tolist())
+                    csv_writer.writerow(csv_row)
+            #
+            # crop and save frame
+            #
+            if top_crop >0 or bottom_crop < hr:
+                color_frame = color_frame[top_crop:bottom_crop,:,:]
+            frame_name = f'camera{c+1}_frame_{frame_index:07d}'
+            imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
+            if args["crude"]:
+                crude_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
+                crude_frame = np.flip(np.array(crude_frame),axis=2)            
+                crude_frame = fast_rot(crude_frame,rot[c])
+                imgio.imsave(os.path.join(output_dir,frame_name+'_crude.jpg'),crude_frame,quality=90)
+                imgio.imsave(os.path.join(output_dir,frame_name+'_refined.jpg'),color_frame,quality=90)
+            else:
+                imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
+
+            frame_index += 1
             cap[c].release()
             # -------- end for: we have read all parts from this camera
         print("finished with camera ",c+1)    
