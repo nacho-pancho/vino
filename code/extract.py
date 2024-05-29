@@ -224,8 +224,8 @@ if __name__ == "__main__":
                     help="número de toma")
     ap.add_argument("-p","--part", type=int, default=1,
                     help="número de parte (en gral. para calibrar usamos siempre la 1)")
-    ap.add_argument('-r',"--rescale-factor", type=int, default=4,
-                    help="Reduce output this many times (defaults to 4). ")
+    ap.add_argument('-r',"--rescale-factor", type=int, default=1,
+                    help="Reduce output this many times (defaults to 1). ")
     ap.add_argument('-i',"--ini-data-frame", type=int, default=-1,
                     help="First data frame to extract. ")
     ap.add_argument('-f',"--fin-data-frame", type=int, default=-1,
