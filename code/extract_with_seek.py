@@ -25,14 +25,8 @@ import os
 import csv
 from vutils import *
 
-
-
-
-
 def extract(input_dir, annotations, calibration, args, output_dir):
     part = args["part"]
-    input_fname = [None,None]
-    camera =[ calibration["camera1"]["name"], calibration["camera2"]["name"]]
     take = annotations["take"]
     res_fac = args["rescale_factor"]
     skip = args["skip"]
@@ -42,9 +36,9 @@ def extract(input_dir, annotations, calibration, args, output_dir):
     else:
         ncam = 2
     print("number of cameras",ncam)
-    rot = [ annotations["rot1"], annotations["rot2"]]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir,exist_ok=True)
+
     frames_in_seconds = args["seconds"]
     #
     # we store the QR info in a CSV table along with the files
@@ -55,71 +49,71 @@ def extract(input_dir, annotations, calibration, args, output_dir):
         print('Creating csv file ',qr_csv_path)
         csv_writer = csv.writer(qr_csv_file,delimiter=',')
         csv_writer.writerow(('camera','frame','data','x1', 'y1', 'x2','y2','x3','y3','x4','y4'))
+
     print("extracting frames to output directory:",output_dir)
     print("skipping every ",skip,"frames","reduced by a factor of ",res_fac)
     offset = compute_offsets(annotations)
     # white frame
-    fps = [None,None]
-    cap = [None,None]
-    input_fname = [None,None]
     for c in range(ncam):
-        # must reset for each camera because ini_frame gets modified
+
+        camera = calibration[f"camera{c+1}"]["name"]
+
+        input_fname = os.path.join(input_dir,f'{camera}/{camera}_toma{take}_parte{part}.mp4')
+        print(input_fname)
+        if not os.path.exists(input_fname):
+            break
+
+        cap = cv2.VideoCapture(input_fname)
+        fps = cap.get(cv2.CAP_PROP_FPS) 
+        print("fps",fps)
+        nframes = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        print("nframes:",nframes)
+        # initial frame is beyond this part
+        print("backend",cap.getBackendName())
+
+
         ini_frame = args["ini_data_frame"]
         if ini_frame < 0:
             ini_frame = 0
         final_frame = args["fin_data_frame"]
         if final_frame <= 0:
             final_frame = 1000000000
+
+        rot = annotations[f"rot{c+1}"]
+
         frame = None
         white_frame = None
         n = 0
         t0 = time.time()
-        nframes = [list(),list()]
         print("="*80)
-        print(f"camera {camera[c]}:")
+        print(f"camera {camera}:")
         white_balance = calibration[f"camera{c+1}"]["white_balance"]
-        fps[c] = calibration[f'camera{c+1}']["fps"]
         if frames_in_seconds:
-            ini_frame = int(ini_frame*fps[c])
-            final_frame = int(final_frame*fps[c])
+            ini_frame = int(round(ini_frame*fps))
+            final_frame = int(round(final_frame*fps))
         print("ini_frame",ini_frame,"fin_frame",final_frame,"offset",offset[c])
         ini_frame += offset[c]
         frame_index = ini_frame
-        input_fname[c] = os.path.join(input_dir,f'{camera[c]}/{camera[c]}_toma{take}_parte{part}.mp4')
-        print(input_fname[c])
-        if not os.path.exists(input_fname[c]):
-            break
         print("-"*80)
-        cap[c] = cv2.VideoCapture(input_fname[c])
-        #fps[c] = cap[c].get(cv2.CAP_PROP_FPS) 
-        nframes_c_p = int(cap[c].get(cv2.CAP_PROP_FRAME_COUNT))
-        nframes[c].append(nframes_c_p)
-        print("number of frames in this part:",nframes_c_p)
-        # initial frame is beyond this part
-        
-        cap[c].set(cv2.CAP_PROP_POS_AVI_RATIO, frame_index/nframes_c_p)
+
+        ret = cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
         #
         # create QR code detector instance
-        #
-        qr_detector = cv2.QRCodeDetector()
+        #        
+        ret, frame = cap.read()
 
         # Loop until the end of the video
-        while (cap[c].isOpened()) and frame_index < min(final_frame,nframes_c_p): # ----- loop over frames
-            # Capture frame-by-frame
-            if frame is None:
-                ret, frame = cap[c].read()
-            else:
-                ret, frame = cap[c].read(frame)
-            if not ret:
-                break
+        qr_detector = cv2.QRCodeDetector()
+
+        while ret and (cap.isOpened()) and frame_index < min(final_frame,nframes): # ----- loop over frames
             n = frame_index - ini_frame
+            frame_index += 1
             if n > 0 and n % skip:
-                frame_index += 1
                 continue
             h,w,_ = frame.shape
             color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
-            color_frame = np.flip(np.array(color_frame),axis=2)            
-            color_frame = fast_rot(color_frame,rot[c])
+            color_frame = np.flip(np.array(color_frame),axis=2)                        
+            color_frame = fast_rot(color_frame,rot)
             hr,wr,_ = color_frame.shape
             color_frame = color_frame.astype(float)
             if white_frame is None:
@@ -146,7 +140,7 @@ def extract(input_dir, annotations, calibration, args, output_dir):
                 qr_info = ""
             if qr_info is not None and len(qr_info):
                 qr_info = int(qr_info)
-                frame_time_s = frame_index / fps[c]
+                frame_time_s = frame_index / fps
                 frame_time_min = int(np.floor(frame_time_s / 60))
                 frame_time_s -= frame_time_min*60
                 print(f'frame {frame_index:06d} (time {frame_time_min:02d}:{frame_time_s:5.2f}s: QR detected: {qr_info:03d}')
@@ -165,15 +159,14 @@ def extract(input_dir, annotations, calibration, args, output_dir):
             if args["crude"]:
                 crude_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
                 crude_frame = np.flip(np.array(crude_frame),axis=2)            
-                crude_frame = fast_rot(crude_frame,rot[c])
+                crude_frame = fast_rot(crude_frame,rot)
                 imgio.imsave(os.path.join(output_dir,frame_name+'_crude.jpg'),crude_frame,quality=90)
                 imgio.imsave(os.path.join(output_dir,frame_name+'_refined.jpg'),color_frame,quality=90)
             else:
                 imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
-
-            frame_index += 1
-            cap[c].release()
-            # -------- end for: we have read all parts from this camera
+            ret, frame = cap.read(frame)
+        cap.release()
+        # -------- end for: we have read all parts from this camera
         print("finished with camera ",c+1)    
         # end for: we have processed all cameras
     if args["create_csv"]:
@@ -245,7 +238,7 @@ if __name__ == "__main__":
         with open(calibration_file,'r') as fc:
             annotations = json.loads(fa.read())
             calibration = json.loads(fc.read())
-            print("annotations:",json.dumps(annotations,indent="  "))
-            print("calibration:",json.dumps(calibration,indent="  "))
+            #print("annotations:",json.dumps(annotations,indent="  "))
+            #print("calibration:",json.dumps(calibration,indent="  "))
             extract(input_dir, annotations, calibration, args, output_dir)
 
