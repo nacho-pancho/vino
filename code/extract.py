@@ -20,14 +20,8 @@ import os
 import csv
 from vutils import *
 
-
-
-
-
 def extract(input_dir, annotations, calibration, args, output_dir):
 
-    input_fname = [None,None]
-    camera =[ calibration["camera1"]["name"], calibration["camera2"]["name"]]
     take = annotations["take"]
     part = args["part"]
     res_fac = args["rescale_factor"]
@@ -38,7 +32,6 @@ def extract(input_dir, annotations, calibration, args, output_dir):
     else:
         ncam = 2
     print("number of cameras",ncam)
-    rot = [ annotations["rot1"], annotations["rot2"]]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir,exist_ok=True)
     frames_in_seconds = args["seconds"]
@@ -54,11 +47,14 @@ def extract(input_dir, annotations, calibration, args, output_dir):
     print("extracting frames to output directory:",output_dir)
     print("skipping every ",skip,"frames","reduced by a factor of ",res_fac)
     offset = compute_offsets(annotations)
+    if args["reference"] == 2:
+        offset = [offset[0]-offset[1],0]
+    print(f"offset: camera 1 {offset[0]} camera 2 {offset[1]}")
     # white frame
-    fps = [None,None]
-    cap = [None,None]
-    input_fname = [None,None]
-    for c in range(ncam):
+    for c in range(1,ncam+1):
+        camera_id = f"camera{c}"
+        camera_name = calibration[camera_id]["name"]
+        rot = annotations[f"rot{c}"]
         # must reset for each camera because ini_frame gets modified
         ini_frame = args["ini_data_frame"]
         if ini_frame < 0:
@@ -72,34 +68,29 @@ def extract(input_dir, annotations, calibration, args, output_dir):
         t0 = time.time()
         nframes = [list(),list()]
         print("="*80)
-        print(f"camara {camera[c]}:")
+        print(f"camara {camera_name}")
         print(f"parte {part} ")
-        white_balance = calibration[f"camera{c+1}"]["white_balance"]
-        fps[c] = calibration[f'camera{c+1}']["fps"]
+        white_balance = calibration[camera_id]["white_balance"]
+        fps = calibration[camera_id]["fps"]
         if frames_in_seconds:
-            ini_frame = int(ini_frame*fps[c])
-            final_frame = int(final_frame*fps[c])
-        ini_frame += offset[c]
-        input_fname[c] = os.path.join(input_dir,f'{camera[c]}/{camera[c]}_toma{take}_parte{part}.mp4')
-        print(input_fname[c])
-        if not os.path.exists(input_fname[c]):
-            print(f'ERROR: no se encuentra video {input_fname[c]}.')
+            ini_frame = int(ini_frame*fps)
+            final_frame = int(final_frame*fps)
+        ini_frame   += offset[c-1]
+        final_frame += offset[c-1]
+        input_fname = os.path.join(input_dir,f'{camera_name}/{camera_name}_toma{take}_parte{part}.mp4')
+        print(input_fname)
+        if not os.path.exists(input_fname):
+            print(f'ERROR: no se encuentra video {input_fname}.')
             break
 
-        cap[c] = cv2.VideoCapture(input_fname[c])
-        nframes_c_p = int(cap[c].get(cv2.CAP_PROP_FRAME_COUNT))
-        nframes[c].append(nframes_c_p)
-        print("number of frames:",nframes_c_p)
-        h = int(cap[c].get(cv2.CAP_PROP_FRAME_HEIGHT))
+        cap = cv2.VideoCapture(input_fname)
+        nframes= int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        print("number of frames:",nframes)
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print("input frame height",h)
-        w = int(cap[c].get(cv2.CAP_PROP_FRAME_WIDTH))
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         print("input frame width",w)
         frame = np.empty((h,w,3))
-        # initial frame is beyond this part
-        
-        if ini_frame < 0:
-            ini_frame = 0
-            
         #
         # ningun metodo de posicionamiento parece andar 100% bien así que 
         # voy a hacerlo a lo bestia y leer todos los frames iniciales hasta llegar al objetivo
@@ -107,23 +98,21 @@ def extract(input_dir, annotations, calibration, args, output_dir):
         print(f'grabbing frames {ini_frame} to {final_frame}')
         frame_index = 0
         print(f'skipping initial frames')
-        while cap[c].isOpened() and frame_index < ini_frame:
-            #res, frame = cap[c].read(frame)
-            res = cap[c].read(frame) # do not decode
+        while cap.isOpened() and frame_index < ini_frame:
+            res = cap.read(frame) # do not decode
             if not res:
                 print(f'Fin de stream en frame {frame_index}')
                 break
-            print('.',end='')
-            if not frame_index % 50:
-                print()
+            if not frame_index % 1000:
+                print(f'frame {frame_index}')
             frame_index += 1
         #
         # create QR code detector instance
         #
         qr_detector = cv2.QRCodeDetector()
         # Loop until the end of the video
-        while cap[c].isOpened() and frame_index < min(final_frame,nframes_c_p): # ----- loop over frames
-            ret, frame = cap[c].read(frame)
+        while cap.isOpened() and frame_index < min(final_frame,nframes): # ----- loop over frames
+            ret, frame = cap.read(frame)
             if not ret:
                 print('End of stream reached.')
                 break
@@ -140,7 +129,7 @@ def extract(input_dir, annotations, calibration, args, output_dir):
             h,w,_ = frame.shape
             color_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
             color_frame = np.flip(np.array(color_frame),axis=2)            
-            color_frame = fast_rot(color_frame,rot[c])
+            color_frame = fast_rot(color_frame,rot)
             hr,wr,_ = color_frame.shape
             color_frame = color_frame.astype(float)
             
@@ -150,7 +139,7 @@ def extract(input_dir, annotations, calibration, args, output_dir):
                 bottom_crop = hr*(100-args["bottom_crop"])//100
                 print("uncropped frame size: h=",hr,"w=",wr)
                 print("crop: top",top_crop, "bottom",bottom_crop)
-                white_frame = np.load(os.path.join(calibration_dir,calibration[f'camera{c+1}']["white_frame_matrix"]))
+                white_frame = np.load(os.path.join(calibration_dir,calibration[camera_id]["white_frame_matrix"]))
                 hw,ww = white_frame.shape
                 white_frame = trans.resize(white_frame,(hw//res_fac,ww//res_fac))*(1/255)
             #
@@ -169,7 +158,7 @@ def extract(input_dir, annotations, calibration, args, output_dir):
                 qr_info = ""
             if qr_info is not None and len(qr_info):
                 qr_info = int(qr_info)
-                frame_time_s = frame_index / fps[c]
+                frame_time_s = frame_index / fps
                 frame_time_min = int(np.floor(frame_time_s / 60))
                 frame_time_s -= frame_time_min*60
                 print(f'frame {frame_index:06d} (time {frame_time_min:02d}:{frame_time_s:5.2f}s: QR detected: {qr_info:03d}')
@@ -183,23 +172,19 @@ def extract(input_dir, annotations, calibration, args, output_dir):
             #
             if top_crop >0 or bottom_crop < hr:
                 color_frame = color_frame[top_crop:bottom_crop,:,:]
-            frame_name = f'camera{c+1}_frame_{frame_index:07d}'
+            frame_name = f'{camera_name}_frame_{frame_index:07d}'
             imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
             if args["crude"]:
                 crude_frame = cv2.resize(frame,(w//res_fac,h//res_fac))
                 crude_frame = np.flip(np.array(crude_frame),axis=2)            
-                crude_frame = fast_rot(crude_frame,rot[c])
+                crude_frame = fast_rot(crude_frame,rot)
                 imgio.imsave(os.path.join(output_dir,frame_name+'_crude.jpg'),crude_frame,quality=90)
                 imgio.imsave(os.path.join(output_dir,frame_name+'_refined.jpg'),color_frame,quality=90)
             else:
                 imgio.imsave(os.path.join(output_dir,frame_name+'.jpg'),color_frame,quality=90)
 
             frame_index += 1
-            #_fps = (n+1)/(time.time()-t0)
-            #print(f'frame {n+ini_data:05d}  fps {_fps:7.1f}')
-            # ------- end while : we have read all frames from a given part and camera
-        print("finished with camera ",c+1)    
-        cap[c].release()
+        cap.release()
         # -------- end for: we have read all parts from this camera
         # end for: we have processed all cameras
     if args["create_csv"]:
@@ -226,6 +211,8 @@ if __name__ == "__main__":
                     help="número de parte (en gral. para calibrar usamos siempre la 1)")
     ap.add_argument('-r',"--rescale-factor", type=int, default=1,
                     help="Reduce output this many times (defaults to 1). ")
+    ap.add_argument("-R","--reference", type=int, default=1,
+                    help="Indicate of which camera the initial and final video frames refer to  (defaults to 1, first camera)")
     ap.add_argument('-i',"--ini-data-frame", type=int, default=-1,
                     help="First data frame to extract. ")
     ap.add_argument('-f',"--fin-data-frame", type=int, default=-1,
