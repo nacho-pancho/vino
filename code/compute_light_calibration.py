@@ -19,6 +19,7 @@ import cv2
 import matplotlib.pyplot as plt
 from skimage import io as imgio
 from skimage import transform as trans
+import skimage
 import json
 import os
 from vutils import *
@@ -47,15 +48,17 @@ def do_white(annotations,args,output_dir):
         offset = [0,0]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir,exist_ok=True)
-        
-    cropbox = annotations["crop_box"]
-    i0,j0,i1,j1 = cropbox
-    i0r = i0//res_fac
-    j0r = j0//res_fac
-    i1r = i1//res_fac
-    j1r = j1//res_fac
-    calibration["cropbox_rescaled"] = {"top":i0r,"left":j0r,"bottom":i1r,"right":j1r}
-    calibration["cropbox_orig"] = cropbox
+    
+    i0r = 0
+    j0r = 0
+    cropbox = None # annotations["crop_box"]
+    #i0,j0,i1,j1 = cropbox
+    #i0r = i0//res_fac
+    #j0r = j0//res_fac
+    #i1r = i1//res_fac
+    #j1r = j1//res_fac
+    #calibration["cropbox_rescaled"] = {"top":i0r,"left":j0r,"bottom":i1r,"right":j1r}
+    #calibration["cropbox_orig"] = cropbox
     # white frame
     ini_white = annotations["ini_white_frame"]
     end_white = annotations["fin_white_frame"]
@@ -121,7 +124,7 @@ def do_white(annotations,args,output_dir):
 
             if not n % 5:
                 _fps = n/(time.time()-t0)
-                imgio.imsave(os.path.join(output_dir,f'camera{c+1}_white_{n+ini_white:05d}.jpg'),color_frame)
+                imgio.imsave(os.path.join(output_dir,f'{camera[c]}_white_{n+ini_white:05d}.jpg'),color_frame)
                 print(f'frame {n+ini_white:05d}  fps {_fps:7.1f}')
 
             n += 1
@@ -129,15 +132,20 @@ def do_white(annotations,args,output_dir):
 
         # release the video capture object
         cap[c].release()
-        print(cropbox)
-        if cropbox is not None:
+        #if cropbox is not None:
             # cropbox is top left bottom right
-            max_frame = max_frame[i0r:i1r,j0r:j1r]
-        else:
-            calibration_c["cropbox_rescaled"] = ""
-        wf_avg_preview = os.path.join(output_dir,f'{camera[c]}_average_cropped_scaled_white_frame.png')
-        calibration_c["white_frame_average"] = f'camera{c+1}_average_cropped_scaled_white_frame.png'
-        imgio.imsave(wf_avg_preview,max_frame.astype(np.uint8))
+        #    max_frame = max_frame[i0r:i1r,j0r:j1r]
+        #else:
+        #    calibration_c["cropbox_rescaled"] = ""
+        i0r = 0
+        j0r = 0
+        print(max_frame.shape)
+        i1r = max_frame.shape[0]
+        j1r = max_frame.shape[1]
+        max_frame_up = cv2.resize(max_frame,(w0,h0))
+        wf_avg_preview = os.path.join(output_dir,f'{camera[c]}_average_white_frame.png')
+        #calibration_c["white_frame_average"] = f'{camera[c]}_average_cropped_scaled_white_frame.png'
+        imgio.imsave(wf_avg_preview,skimage.img_as_ubyte(max_frame_up))
         means = (mean_red/num_valid,mean_green/num_valid,mean_blue/num_valid)
         calibration_c["white_balance"] = {"red":means[0],"green":means[1],"blue":means[2]}
         print(f"mean white frame color:",means)
@@ -149,10 +157,15 @@ def do_white(annotations,args,output_dir):
         # 
         ri = np.arange(i0r,i1r)/hr
         ci = np.arange(j0r,j1r)/wr
+        print(len(ri))
+        print(len(ci))
         Ri,Ci = np.meshgrid(ri,ci,indexing='ij')
         Ri = Ri.ravel()
         Ci = Ci.ravel()
+        print(len(Ri))
+        print(len(Ci))
         L = max_frame.ravel()
+        print(len(L))
         VP = np.flatnonzero(L < 255)
         L = L[VP]
         Ri = Ri[VP]
