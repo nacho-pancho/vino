@@ -40,18 +40,18 @@ def generate_output_dir(camera_a,camera_b,toma,ini_frame,fin_frame):
         return f"{camera_a}_toma{toma}_frames_{ini_frame}_{fin_frame}"
 
 
-def generate_annotations_filename(camera_a,camera_b,toma):
+def generate_annotations_filename(camera_a,camera_b):
     if camera_b is not None:
-        return f"{camera_a}+{camera_b}_toma{toma}.json"
+        return f"{camera_a}+{camera_b}.json"
     else:
-        return f"{camera_a}_toma{toma}.json"
+        return f"{camera_a}.json"
         
 
-def generate_calibration_directory(camera_a,camera_b,toma):
+def generate_calibration_directory(camera_a,camera_b):
     if camera_b is not None:
-        return f"{camera_a}+{camera_b}_toma{toma}.calib"
+        return f"{camera_a}+{camera_b}.calib"
     else:
-        return f"{camera_a}_toma{toma}.calib"
+        return f"{camera_a}.calib"
         
 def fast_rot(img,rot):
     if rot < 0:

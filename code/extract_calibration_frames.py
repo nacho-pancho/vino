@@ -34,7 +34,6 @@ def extract(input_dir, annotations, args, calibration_dir):
         ncam = 1
     else:
         ncam = 2
-    take = args["take"]
     res_fac = args["rescale_factor"]
     print("number of cameras",ncam)
     if not os.path.exists(calibration_dir):
@@ -59,7 +58,7 @@ def extract(input_dir, annotations, args, calibration_dir):
         print("="*80)
         print(f"camara {camera}:")
         ini_frame += offset[c]
-        input_fname = os.path.join(input_dir,f'{camera}/{camera}_toma{take}_parte1.mp4')
+        input_fname = os.path.join(input_dir,f'{camera}.mp4')
         print("input video file:",input_fname)
         if not os.path.exists(input_fname):
             print(f'ERROR: no se encuentra video {input_fname}.')
@@ -117,23 +116,18 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument("-D","--datadir",type=str,required=True,help="directorio donde se encuentran todos los datos.")
-    ap.add_argument("-A","--adqdir", type=str, required=True,
-                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras).")
-    ap.add_argument("-a","--camera-a", type=str, required=True,
-                    help="primera cámara (siempre tiene que estar)")
-    ap.add_argument("-b","--camera-b", type=str, default=None,
-                    help="segunda cámara (si es un par)")
-    ap.add_argument("-t","--take", type=int, default=1,
-                    help="número de toma")
+    ap.add_argument("-D","--datadir",type=str,default=".",help="directorio donde se encuentran todos los datos.")
+    ap.add_argument("camera_a", type=str,
+                    help="primera cámara")
+    ap.add_argument("camera_b", type=str,
+                    help="segunda cámara")
     ap.add_argument('-r',"--rescale-factor", type=int, default=2,
                     help="Reduce output this many times (defaults to 2). ")
     args = vars(ap.parse_args())
     camera_a = args["camera_a"]
     camera_b = args["camera_b"]
-    take     = args["take"]
-    input_dir = os.path.join(args["datadir"],args["adqdir"])
-    annotations_file = os.path.join(input_dir,generate_annotations_filename(camera_a,camera_b,take))
+    input_dir = os.path.join(args["datadir"])
+    annotations_file = os.path.join(input_dir,generate_annotations_filename(camera_a,camera_b))
     calibration_dir,_ = os.path.splitext(annotations_file) 
     calibration_dir = calibration_dir + ".calib"
     annotations_base_fname,_ = os.path.splitext(annotations_file)

@@ -39,11 +39,9 @@ class VidUI():
         self.rot = [args["rotation1"],args["rotation2"]]
         camera_a = args["camera_a"]
         camera_b = args["camera_b"]
-        toma = args["take"]
-        adq_dir = args["adqdir"]
         data_dir = args["datadir"]
-        rel_json_fname = generate_annotations_filename(camera_a,camera_b,toma)
-        self.json_fname = os.path.join(data_dir, adq_dir,rel_json_fname)
+        rel_json_fname = generate_annotations_filename(camera_a,camera_b)
+        self.json_fname = os.path.join(data_dir, rel_json_fname)
         print("JSON file:",self.json_fname)
         self.root = tk.Tk()
         self.style = ttk.Style(self.root)
@@ -70,8 +68,6 @@ class VidUI():
             self.annotations = {
                 "camera_a":args["camera_a"],
                 "camera_b":args["camera_b"],
-                "take":args["take"],
-                "part":args["part"],
                 "ini_calib_frame":-1,
                 "fin_calib_frame":-1,
                 "ini_white_frame":-1,
@@ -384,16 +380,10 @@ if __name__ == "__main__":
     # mmetadata
     #
     ap.add_argument("-D","--datadir",type=str,default=".",help="directorio donde se encuentran todos los datos.")
-    ap.add_argument("-a","--camera-a", type=str, required=True,
+    ap.add_argument("camera_a", type=str,
                     help="primera cámara (siempre tiene que estar)")
-    ap.add_argument("-b","--camera-b", type=str, default=None,
+    ap.add_argument("camera_b", type=str,
                     help="segunda cámara (si es un par)")
-    ap.add_argument("-t","--take", type=int, default=1,
-                    help="número de toma")
-    ap.add_argument("-p","--part", type=int, default=1,
-                    help="número de parte (en gral. para calibrar usamos siempre la 1)")
-    ap.add_argument("-A","--adqdir", type=str, required=True,
-                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
     ap.add_argument("-r","--rotation1", type=int, default=None,
                     help="rotation of first input.")
     ap.add_argument("-s","--rotation2", type=int, default=None,
@@ -402,16 +392,12 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
     cap = [None,None]
     fps = [None,None]
-    adq_path = os.path.join(args["datadir"],args["adqdir"])
+    adq_path = args["datadir"]
     print(f"Ruta absoluta de adquisicion: {adq_path}")
     
     camera_a = args["camera_a"]
-    toma = args["take"]
-    parte = args["part"]
 
-    camera_a_path = os.path.join(adq_path,camera_a)
-    print(f"Ruta a cámara {camera_a}: {camera_a_path}")
-    toma_a_path = os.path.join(camera_a_path,f"{camera_a}_toma{toma}_parte{parte}.mp4")
+    toma_a_path = os.path.join(adq_path,f"{camera_a}.mp4")
     print(f"Ruta a toma de cámara {camera_a}: {toma_a_path}")
     cap[0] = cv2.VideoCapture(toma_a_path)
     if cap[0] is None or not cap[0].isOpened():
@@ -420,9 +406,7 @@ if __name__ == "__main__":
 
     camera_b = args["camera_b"]
     if camera_b is not None:
-        camera_b_path = os.path.join(adq_path,camera_b)
-        print(f"Ruta a cámara {camera_b}: {camera_b_path}")
-        toma_b_path = os.path.join(camera_b_path,f"{camera_b}_toma{toma}_parte{parte}.mp4")
+        toma_b_path = os.path.join(adq_path,f"{camera_b}.mp4")
         print(f"Ruta a toma de cámara {camera_b}: {toma_b_path}")
         cap[1] = cv2.VideoCapture(toma_b_path)
         if cap[1] is None or not cap[1].isOpened():

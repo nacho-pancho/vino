@@ -16,3 +16,6 @@
 [submodule "contrib/colmap"]
 	path = contrib/colmap
 	url = https://github.com/colmap/colmap.git
+[submodule "contrib/vitor"]
+	path = contrib/vitor
+	url = https://github.com/vitordj/cotracker-sampling.git

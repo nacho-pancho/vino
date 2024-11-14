@@ -29,15 +29,14 @@ def do_white(annotations,args,output_dir):
     input_fname = [None,None]
     camera_a = annotations["camera_a"]
     camera_b = annotations["camera_b"]
-    take = annotations["take"]
     res_fac = args["rescale_factor"]
-    basedir = os.path.join(args["datadir"],args["adqdir"])
-    input_fname[0] = os.path.join(basedir,f'{camera_a}/{camera_a}_toma{take}_parte1.mp4')
+    basedir = os.path.join(args["datadir"])
+    input_fname[0] = os.path.join(basedir,f'{camera_a}.mp4')
     rot = annotations["rot1"]
     camera = [camera_a,camera_b]
     if annotations["camera_b"]:
         camera_b = annotations["camera_b"]
-        input_fname[1] = os.path.join(basedir,f'{camera_b}/{camera_b}_toma{take}_parte1.mp4')
+        input_fname[1] = os.path.join(basedir,f'{camera_b}.mp4')
         ncam = 2
         calibration["ncam"] = 2
         rot = [ annotations["rot1"], annotations["rot2"]]
@@ -130,12 +129,13 @@ def do_white(annotations,args,output_dir):
 
         # release the video capture object
         cap[c].release()
+        print(cropbox)
         if cropbox is not None:
             # cropbox is top left bottom right
             max_frame = max_frame[i0r:i1r,j0r:j1r]
         else:
             calibration_c["cropbox_rescaled"] = ""
-        wf_avg_preview = os.path.join(output_dir,f'camera{c+1}_average_cropped_scaled_white_frame.png')
+        wf_avg_preview = os.path.join(output_dir,f'{camera[c]}_average_cropped_scaled_white_frame.png')
         calibration_c["white_frame_average"] = f'camera{c+1}_average_cropped_scaled_white_frame.png'
         imgio.imsave(wf_avg_preview,max_frame.astype(np.uint8))
         means = (mean_red/num_valid,mean_green/num_valid,mean_blue/num_valid)
@@ -213,16 +213,9 @@ if __name__ == "__main__":
     #
     # mmetadata
     #
-    ap.add_argument("-a","--camera-a", type=str, required=True,
-                    help="primera cámara (siempre tiene que estar)")
-    ap.add_argument("-b","--camera-b", type=str, default=None,
-                    help="segunda cámara (si es un par)")
-    ap.add_argument("-t","--take", type=int, default=1,
-                    help="número de toma")
-    ap.add_argument("-D","--datadir",type=str,required=True,help="directorio donde se encuentran todos los datos.")
-    ap.add_argument("-A","--adqdir", type=str, required=True,
-                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
-
+    ap.add_argument("camera_a", type=str, help="primera cámara")
+    ap.add_argument("camera_b", type=str, help="segunda cámara")
+    ap.add_argument("-D","--datadir",type=str,default=".",help="directorio donde se encuentran todos los datos.")
     ap.add_argument('-R',"--rescale-factor", type=int, default=8,
                     help="Reduce resolution this many times (defaults to 8 -- brutal). ")
     ap.add_argument('-o',"--output", type=str, default=None,
@@ -231,8 +224,8 @@ if __name__ == "__main__":
                     help="Method for computing the white frame. May be average,max,or an integer for the percentile (much slower).")
     args = vars(ap.parse_args())
 
-    rel_json_fname = generate_annotations_filename(args["camera_a"],args["camera_b"],args["take"])
-    json_fname = os.path.join(args["datadir"],args["adqdir"],rel_json_fname)
+    rel_json_fname = generate_annotations_filename(args["camera_a"],args["camera_b"])
+    json_fname = os.path.join(args["datadir"],rel_json_fname)
     print("JSON file: ",json_fname)
     with open(json_fname,"r") as f:
         annotations = json.loads(f.read())

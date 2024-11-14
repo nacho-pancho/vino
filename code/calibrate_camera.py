@@ -33,7 +33,6 @@ def gather_calibration_data(annotations,args):
         exit(1)
 
     camera[0] = annotations["camera_a"]
-    take = annotations["take"]
     input_dir=os.path.join(args["datadir"],args["adqdir"])
     output_dir=args["outdir"]
     if output_dir is None:
@@ -132,14 +131,8 @@ if __name__ == "__main__":
                     help="segunda cámara (si es un par)")
     ap.add_argument('-D',"--datadir", type=str, required=True,
                     help="Base directory for all gathered data.")
-    ap.add_argument("-A","--adqdir", type=str, required=True,
-                    help="nombre de directorio de la instancia de adquisicion, por ej: 2024-01-03-vino_fino SIN terminadores (barras)")
     ap.add_argument('-R',"--rescale-factor", type=int, default=8,
                     help="Reduce resolution this many times (defaults to 8 -- brutal). ")
-    ap.add_argument('-c',"--camera", type=float, default=1,
-                    help="Which camera to calibrate.")
-    ap.add_argument('-t',"--take", type=float, default=1,
-                    help="Which take to process (toma).")
     ap.add_argument('-l',"--alpha", type=float, default=1,
                     help="Parameter for OpenCV getOptimalNewCameraMatrix.")
     ap.add_argument('-E',"--epsilon", type=float, default=1e-3,
