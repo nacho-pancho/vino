@@ -68,6 +68,7 @@ if __name__ == "__main__":
         h,w = input_frame.shape
         #input_frame = skimage.transform.resize(input_frame,(h,w))
         h,w = input_frame.shape
+        #input_frame = input_frame[h//2-512:h//2+512,:]
         input_frame = input_frame[h//2-512:h//2+512,:]
         h,w = input_frame.shape
         curr_frame_fft = fft.fft2(input_frame)
