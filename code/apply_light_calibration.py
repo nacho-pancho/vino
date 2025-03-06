@@ -99,7 +99,7 @@ if __name__ == "__main__":
                 inv_white_frame = skimage.transform.rescale(inv_white_frame,1/args.scale)
             wh, ww = inv_white_frame.shape[:2]
             if wh != ih and ww != iw:
-                print(f"Wrong scaling factor: input frames have different shape ({wh}x{ww}) than calibration frame ({ih}x{iw}).")
+                print(f"Wrong scaling factor: input frames have different shape ({ih}x{iw}) than calibration frame ({wh}x{ww}).")
                 print(f"Wrong scaling factor.")
                 sys.exit(1)
 
@@ -109,16 +109,14 @@ if __name__ == "__main__":
     norm_frame[:,:,2] = inv_white_frame*(1/white_balance["blue"])
 
     output_dir = os.path.dirname(args.output_prefix)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    if output_dir == '':
+    if output_dir != '' and output_dir != '.' and not os.path.exists(output_dir):
         output_dir = '.'
-    print(f'Output directory: {output_dir}')
+        os.makedirs(output_dir)
     for i,input_file in enumerate(input_files):
-        print(f'{i+1}/{len(input_files)}: {input_file}')
         input_frame = skimage.img_as_float(imgio.imread(input_file))
         output_frame = np.maximum(0,np.minimum(1,input_frame * norm_frame))
         output_file = os.path.join(args.output_prefix,os.path.basename(input_file))
+        print(f'{i+1}/{len(input_files)}: {input_file} -> {output_file}')
         imgio.imsave(output_file,skimage.img_as_ubyte(output_frame))
 
 
